@@ -1,13 +1,30 @@
 #!/usr/bin/env bash
-# Renders the hero frames (tool/record_demo_test.dart, 1280x720 at 60 fps)
-# and encodes them as doc/demo.webp (README) and doc/demo.gif (a lighter
-# 640px, 30 fps copy for places without WebP).
+# Renders a reel frame by frame (1280x720 at 60 fps, as a widget test) and
+# encodes it.
+#
+#   tool/record_demo.sh demo   # the README hero: doc/demo.webp and doc/demo.gif
+#   tool/record_demo.sh ldr    # the nod: build/reels/ldr.webp and .gif
+#
+# Both also get an H.264 MP4 in build/reels/ for posting.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-flutter test tool/record_demo_test.dart
-ffmpeg -hide_banner -loglevel error -y -framerate 60 -i doc/frames/frame_%04d.png \
-  -c:v libwebp_anim -lossless 0 -quality 80 -compression_level 6 -loop 0 doc/demo.webp
-ffmpeg -hide_banner -loglevel error -y -framerate 60 -i doc/frames/frame_%04d.png \
+
+reel="${1:-demo}"
+case "$reel" in
+  demo) test=tool/record_demo_test.dart frames=doc/frames out=doc ;;
+  ldr) test=tool/record_ldr_test.dart frames=build/ldr_frames out=build/reels ;;
+  *) echo "usage: $0 [demo|ldr]" >&2; exit 64 ;;
+esac
+mkdir -p "$out" build/reels
+
+flutter test "$test"
+ffmpeg -hide_banner -loglevel error -y -framerate 60 -i "$frames/frame_%04d.png" \
+  -c:v libwebp_anim -lossless 0 -quality 80 -compression_level 6 -loop 0 \
+  "$out/$reel.webp"
+ffmpeg -hide_banner -loglevel error -y -framerate 60 -i "$frames/frame_%04d.png" \
   -vf "fps=30,scale=640:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=64[p];[b][p]paletteuse=dither=none" \
-  -loop 0 doc/demo.gif
-ls -la doc/demo.webp doc/demo.gif
+  -loop 0 "$out/$reel.gif"
+ffmpeg -hide_banner -loglevel error -y -framerate 60 -i "$frames/frame_%04d.png" \
+  -c:v libx264 -pix_fmt yuv420p -crf 18 -preset slow -movflags +faststart \
+  "build/reels/$reel.mp4"
+ls -la "$out/$reel.webp" "$out/$reel.gif" "build/reels/$reel.mp4"

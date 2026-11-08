@@ -45,7 +45,13 @@ void main() {
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
                           for (final t in [0.0, .25, .5, .75, 1.0])
-                            MorphText(from, toText: to, from: a, to: z, t: t),
+                            MorphText(
+                              from,
+                              toText: to,
+                              from: a,
+                              to: z,
+                              progress: AlwaysStoppedAnimation(t),
+                            ),
                         ],
                       ),
                     ),
