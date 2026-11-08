@@ -1,3 +1,12 @@
+## 0.1.2
+
+- A word and an icon now morph as one shape, every letter from its place in
+  the word, instead of each letter carrying its own copy of the icon. The
+  copies drifted apart as the morph began and covered each other's holes,
+  so an outline icon (Tabler, Lucide, Material's `_border` and `_outline`
+  icons) turned solid before it started to change. Letters with nothing to
+  become now shrink away rather than all flowing into the icon.
+
 ## 0.1.1
 
 - A shorter package description, within pub.dev's 180 characters.

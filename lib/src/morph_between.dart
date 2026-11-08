@@ -9,8 +9,8 @@ import 'morph_text.dart';
 /// outline: text into text (as [MorphText]), text into an icon, an icon into
 /// text, or one icon into another.
 ///
-/// When one end is an icon and the other a word, every letter of the word
-/// flows into the icon (or out of it), and they meet as one shape.
+/// When one end is an icon and the other a word, the whole word and the
+/// icon morph as one shape, each letter from its place in the word.
 ///
 /// At progress 0 and 1 it draws [from] or [to] exactly as a [Text] or [Icon]
 /// would. For a widget that animates by itself, see [AnimatedMorph].

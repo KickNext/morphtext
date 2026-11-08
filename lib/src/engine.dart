@@ -27,13 +27,21 @@ final class GlyphFont {
   /// The outline of [codePoint], or null when the font lacks it or it has no
   /// contours (a space).
   GlyphShape? shape(int codePoint) {
+    final outline = this.outline(codePoint);
+    if (outline == null) return null;
+    return GlyphShape._(_sample(outline._contours), outline.ascender);
+  }
+
+  /// The unsampled outline of [codePoint], to place with others in one
+  /// shape ([GlyphShape.placed]), or null as for [shape].
+  GlyphOutline? outline(int codePoint) {
     if (!_font.containsCodePoint(codePoint)) return null;
     final outline = _font.glyphForCodePoint(codePoint);
     final upm = outline.metrics.unitsPerEm.toDouble();
     final asc = outline.metrics.ascender.toDouble();
     if (upm <= 0 || outline.contours.isEmpty) return null;
     // Normalised to the em: x from the pen, y down from the ascender.
-    final contours = [
+    return GlyphOutline._([
       for (final c in outline.contours)
         CubicContour(
           Float64List.fromList([
@@ -43,16 +51,15 @@ final class GlyphFont {
             ],
           ]),
         ),
-    ];
-    return GlyphShape._(
+    ], asc / upm);
+  }
+
+  static MorphShape _sample(List<CubicContour> contours) =>
       sampleContoursWithPointCounts(
         contours,
         pointCounts: [for (final c in contours) _pointsFor(c)],
         fillRule: MorphFillRule.nonZero,
-      ),
-      asc / upm,
-    );
-  }
+      );
 
   /// As morphnext samples an icon glyph: 16 points a curve, from 64 up to
   /// 2048 in powers of two.
@@ -65,10 +72,45 @@ final class GlyphFont {
   }
 }
 
+/// A glyph's outline as the font draws it, in ems (x from the pen position,
+/// y down from the font's ascender), not yet sampled for morphing.
+final class GlyphOutline {
+  GlyphOutline._(this._contours, this.ascender);
+
+  final List<CubicContour> _contours;
+
+  /// The font's ascender, in ems.
+  final double ascender;
+}
+
 /// One glyph's outline in ems: x along the em from the pen position, y down
-/// from the font's ascender.
+/// from the font's ascender. Or, from [GlyphShape.placed], several outlines
+/// as one shape.
 final class GlyphShape {
   GlyphShape._(this._shape, this.ascender);
+
+  /// Several outlines as one shape, each scaled by its `scale` and moved to
+  /// (`x`, `y`): a word's letters where its layout puts them, so the whole
+  /// word morphs as one outline. Null when there's nothing to draw.
+  /// [ascender] is 0: the shape is placed already.
+  static GlyphShape? placed(
+    Iterable<({GlyphOutline outline, double x, double y, double scale})> parts,
+  ) {
+    final contours = [
+      for (final p in parts)
+        for (final c in p.outline._contours)
+          CubicContour(
+            Float64List.fromList([
+              for (var k = 0; k < c.points.length; k += 2) ...[
+                p.x + c.points[k] * p.scale,
+                p.y + c.points[k + 1] * p.scale,
+              ],
+            ]),
+          ),
+    ];
+    if (contours.isEmpty) return null;
+    return GlyphShape._(GlyphFont._sample(contours), 0);
+  }
 
   final MorphShape _shape;
 

@@ -164,8 +164,9 @@ MorphBetween(
 Any icon font the app bundles works: Material Icons
 (`uses-material-design: true`), Cupertino Icons, morphnext's Morphicons, your
 own. An icon's size and colour default to the ambient `IconTheme`, and at
-either end it is pixel for pixel an `Icon`. When a word meets an icon, every
-letter flows into it (or out of it) and they meet as one shape.
+either end it is pixel for pixel an `Icon`. When a word meets an icon, the
+whole word and the icon morph as one shape, each letter starting from where it
+sits in the word, so an outline icon keeps its hollows until it changes.
 
 As with `Icon`, release builds keep only the icons your code names as
 constants (`--tree-shake-icons`), so name each one (`Icons.check`), not a
@@ -267,9 +268,10 @@ for a quick look.
 The hero above, as a video: [demo.mp4](https://github.com/drei-gg/morphtext/blob/main/doc/reels/demo.mp4).
 
 And a nod to a certain anthology's title card, which people thought of when
-morphnext launched:
+morphnext launched. The heart and the robot stay; the X becomes a delta, the
+sign for change:
 
-![LOVE, DEATH and ANDROID flowing into a heart, a cross and the Android robot, glitching through variants, and settling on LOVE DEATH MORPHS](https://raw.githubusercontent.com/drei-gg/morphtext/main/doc/reels/ldr.webp)
+![LOVE, MORPH and ROBOT flowing into a heart, a delta and a robot, glitching through variants, and settling back on LOVE MORPH ROBOT](https://raw.githubusercontent.com/drei-gg/morphtext/main/doc/reels/ldr.webp)
 
 [ldr.mp4](https://github.com/drei-gg/morphtext/blob/main/doc/reels/ldr.mp4). Both
 are rendered frame by frame in widget tests: `tool/record_demo.sh demo|ldr`.

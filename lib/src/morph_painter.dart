@@ -47,6 +47,8 @@ class MorphPainter extends CustomPainter {
     required this.a,
     required this.b,
     required this.pairs,
+    this.whole,
+    this.unit = 1,
     required this.t,
     required this.moving,
     required this.handoff,
@@ -65,6 +67,14 @@ class MorphPainter extends CustomPainter {
 
   /// Which letter becomes which, once the outlines are read.
   final List<LetterPair>? pairs;
+
+  /// When set, the whole start becoming the whole end as one shape (a word
+  /// and an icon), in place of [pairs]: each end's outlines laid out in
+  /// [unit]s from its own top left.
+  final GlyphMorph? whole;
+
+  /// The length, in logical pixels, of one unit of [whole].
+  final double unit;
 
   /// How far from [a] to [b].
   final double t;
@@ -119,6 +129,8 @@ class MorphPainter extends CustomPainter {
       old.moving != moving ||
       old.handoff != handoff ||
       old.pairs != pairs ||
+      old.whole != whole ||
+      old.unit != unit ||
       old.color != color ||
       old.a != a ||
       old.b != b;
@@ -150,6 +162,17 @@ class MorphPainter extends CustomPainter {
     offsetA = offsetA.translate(0, _snap(transform, offsetA.dy + a.baseline));
     offsetB = offsetB.translate(0, _snap(transform, offsetB.dy + b.baseline));
     final path = Path()..fillType = PathFillType.nonZero;
+    final whole = this.whole;
+    if (whole != null) {
+      // One shape: its points carried from one end's place to the other's.
+      final at = Offset.lerp(offsetA, offsetB, t)!;
+      final square = Rect.fromLTWH(at.dx, at.dy, unit, unit);
+      for (final points in whole.at(t)) {
+        _addContour(path, points, square);
+      }
+      _fill(canvas, path, transform);
+      return;
+    }
     for (var k = 0; k < pairs.length; k++) {
       final pair = pairs[k];
       final from = pair.from, to = pair.to;

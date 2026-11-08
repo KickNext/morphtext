@@ -97,6 +97,34 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
+    testWidgets('an outline icon stays hollow as it starts to morph', (
+      tester,
+    ) async {
+      // Opaque pixels: the capture is transparent around the glyph.
+      int inked(List<int> p) {
+        var n = 0;
+        for (var i = 3; i < p.length; i += 4) {
+          if (p[i] > 128) n++;
+        }
+        return n;
+      }
+
+      // A ring and a star's outline, opening into a word. Morphed as one
+      // shape, the outline keeps its hole: 5% in, it carries about the ink
+      // it did at rest. (A copy of the icon per letter, drifting apart,
+      // covered each other's holes: two to three times the ink at once.)
+      for (final icon in [Icons.radio_button_unchecked, Icons.star_border]) {
+        Widget at(double t) => MorphBetween(
+          from: MorphContent.icon(icon, size: 48, color: ink),
+          to: send,
+          progress: AlwaysStoppedAnimation(t),
+        );
+        final rest = inked(await shoot(tester, at(0)));
+        final early = inked(await shoot(tester, at(.05)));
+        expect(early, lessThan(rest * 1.3), reason: 'icon ${icon.codePoint}');
+      }
+    });
+
     testWidgets('one icon morphs into another', (tester) async {
       final mid = await shoot(
         tester,

@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 
 import 'align.dart';
 import 'animated_morph.dart' show AnimatedMorph;
+import 'engine.dart';
 import 'font_faces.dart';
 import 'morph_between.dart' show MorphBetween;
 import 'morph_painter.dart';
@@ -20,10 +21,12 @@ import 'word_layout.dart';
 /// pixel what a `Text` draws.
 ///
 /// An icon reaches it as Flutter's `Icon` draws one: its code point as a
-/// one-character text in the icon font. With [converge], every letter of a
-/// word morphs into (or out of) the single glyph at the other end, so a word
-/// flows into an icon instead of one letter becoming it while the rest
-/// shrink away.
+/// one-character text in the icon font. With [converge], a word morphs into
+/// (or out of) the single glyph at the other end as one shape, its letters
+/// where its layout puts them, instead of one letter becoming the glyph
+/// while the rest shrink away. (One shape, not a copy of the glyph per
+/// letter: copies drifting apart cover each other's holes, so an outline
+/// icon turned solid before it began to morph.)
 ///
 /// Internal: not exported from the package.
 class MorphRun extends StatefulWidget {
@@ -81,6 +84,15 @@ class _MorphRunState extends State<MorphRun> {
   /// What [_pairs] were read for.
   Object? _pairsKey;
 
+  /// Both ends' faces, read with [_pairs], when a word gathers into a
+  /// single glyph (or one opens into a word): see [_wholeMorph].
+  (FontFace, FontFace)? _gathering;
+
+  /// The whole word's morph into the single glyph, and the geometry it was
+  /// planned for.
+  GlyphMorph? _whole;
+  List<Object?>? _wholeKey;
+
   WordLayout? _layoutA, _layoutB;
 
   @override
@@ -121,6 +133,7 @@ class _MorphRunState extends State<MorphRun> {
     if (key == _pairsKey) return;
     _pairsKey = key;
     _pairs = null;
+    _gathering = null;
     final runesA = widget.text.runes.toList();
     final runesB = widget.toText.runes.toList();
     unawaited(() async {
@@ -147,12 +160,68 @@ class _MorphRunState extends State<MorphRun> {
               },
             ),
         ];
-        if (mounted && _pairsKey == key) setState(() => _pairs = pairs);
+        final gathers =
+            widget.converge && (runesA.length == 1) != (runesB.length == 1);
+        if (mounted && _pairsKey == key) {
+          setState(() {
+            _pairs = pairs;
+            _gathering = gathers ? (a, b) : null;
+          });
+        }
       } on Object catch (error) {
         // Unreadable: it stays plain text, switching at the middle.
         _warn(from.fontFamily, to.fontFamily, error);
       }
     }());
+  }
+
+  /// The word and the single glyph as one morph, each end's outlines placed
+  /// where its layout draws them, in units of the larger em; null until the
+  /// faces are read, or when either end has nothing to draw. Planned again
+  /// only when the geometry changes, never for a colour.
+  GlyphMorph? _wholeMorph(WordLayout a, WordLayout b) {
+    final faces = _gathering;
+    if (faces == null) return null;
+    final unit = a.em > b.em ? a.em : b.em;
+    final key = <Object?>[
+      faces.$1,
+      faces.$2,
+      a.text,
+      b.text,
+      a.em,
+      b.em,
+      a.baseline,
+      b.baseline,
+      ...a.pens,
+      null,
+      ...b.pens,
+    ];
+    if (_wholeKey != null && listEquals(key, _wholeKey)) return _whole;
+    _wholeKey = key;
+    GlyphShape? shape(FontFace face, WordLayout layout) {
+      final runes = layout.text.runes.toList();
+      return GlyphShape.placed([
+        for (var k = 0; k < runes.length; k++)
+          if ((layout.pens[k], face.font.outline(runes[k])) case (
+            final pen?,
+            final outline?,
+          ))
+            (
+              outline: outline,
+              x: pen.dx / unit,
+              y: (pen.dy - outline.ascender * layout.em) / unit,
+              scale: layout.em / unit,
+            ),
+      ]);
+    }
+
+    try {
+      final from = shape(faces.$1, a), to = shape(faces.$2, b);
+      _whole = from == null || to == null ? null : GlyphMorph(from, to);
+    } on Object {
+      _whole = null;
+    }
+    return _whole;
   }
 
   /// Without an [AnimatedMorph]: how far the end's text has faded in over
@@ -200,6 +269,8 @@ class _MorphRunState extends State<MorphRun> {
             a: a,
             b: b,
             pairs: _pairs,
+            whole: _wholeMorph(a, b),
+            unit: a.em > b.em ? a.em : b.em,
             t: t,
             moving: moving,
             handoff: motion?.handoff ?? _fade(t),

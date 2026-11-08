@@ -1,6 +1,8 @@
 // A second reel: a nod to a certain anthology's title card, which people
-// thought of when morphnext launched. LOVE, DEATH and ANDROID flow into
-// their icons, glitch through variants, settle, and end on a pun.
+// thought of when morphnext launched. Its three glyphs, a heart, an X and a
+// robot, become LOVE, MORPH and ROBOT: the X is a morph now (a delta, the
+// sign for change). Each word flows into its icon, glitches through
+// variants, settles, and flows back into the word.
 //
 //   flutter test tool/record_ldr_test.dart               # build/ldr_frames
 //   REEL_SHEET=1 flutter test tool/record_ldr_test.dart  # a contact sheet
@@ -66,29 +68,29 @@ final slots = <Slot>[
     color: red,
   ),
   (
-    word: 'DEATH',
-    icon: icon(Icons.close, white),
+    word: 'MORPH',
+    icon: icon(Icons.change_history, white),
     variants: [
       letter('X', white),
-      icon(Icons.cancel, white),
-      letter('D', white),
-      icon(Icons.dangerous, white),
-      icon(Icons.block, white),
+      icon(Icons.all_inclusive, white),
+      letter('M', white),
+      icon(Icons.autorenew, white),
+      icon(Icons.shuffle, white),
     ],
-    last: 'DEATH',
+    last: 'MORPH',
     color: white,
   ),
   (
-    word: 'ANDROID',
-    icon: icon(Icons.android, white),
+    word: 'ROBOT',
+    icon: icon(Icons.smart_toy, white),
     variants: [
-      icon(Icons.smart_toy, white),
+      icon(Icons.android, white),
       letter('R', white),
       icon(Icons.precision_manufacturing, white),
       icon(Icons.memory, white),
-      letter('A', white),
+      letter('B', white),
     ],
-    last: 'MORPHS',
+    last: 'ROBOT',
     color: white,
   ),
 ];

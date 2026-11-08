@@ -2,7 +2,7 @@ name: morphtext
 description: >-
   Text that morphs letter by letter, outline into outline: weight, size, font,
   one word into another, or into an icon. Built on morphnext's outline engine.
-version: 0.1.1
+version: 0.1.2
 homepage: https://morphtext.drei.gg
 repository: https://github.com/drei-gg/morphtext
 issue_tracker: https://github.com/drei-gg/morphtext/issues
