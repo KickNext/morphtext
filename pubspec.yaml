@@ -1,0 +1,32 @@
+name: morphtext
+description: >-
+  Text that morphs between two styles letter by letter, outline into outline:
+  a light word turns bold, a small word grows, as one word. Built on
+  morphnext's outline engine.
+version: 0.1.0-dev.1
+# Draft: nothing is published until Drei says so.
+publish_to: none
+homepage: https://drei.gg/morphtext
+topics:
+  - flutter
+  - text
+  - animation
+  - morphing
+  - typography
+
+environment:
+  sdk: ">=3.9.0 <4.0.0"
+  flutter: ">=3.32.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # Pinned exactly: MorphText reads glyph outlines and pairs them through
+  # morphnext's internals (lib/src/engine.dart). Re-read those files before
+  # any bump; see upstream/ for the two ways out of the pin.
+  morphnext: 0.6.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0

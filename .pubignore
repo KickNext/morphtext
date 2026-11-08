@@ -1,0 +1,11 @@
+# Drafts that stay in the repo but not in the published package.
+doc/drei-gg/
+doc/frames/
+upstream/
+# (.pubignore replaces .gitignore for pub, so repeat what matters.)
+.dart_tool/
+build/
+pubspec.lock
+example/build/
+example/.dart_tool/
+doc/demo.gif

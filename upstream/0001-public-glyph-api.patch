@@ -1,0 +1,254 @@
+From 23a36b444d19dca379e91ac3e9e727421217c421 Mon Sep 17 00:00:00 2001
+From: Drei Guintu <6581480+alguintu@users.noreply.github.com>
+Date: Sun, 8 Nov 2026 14:39:57 +0800
+Subject: [PATCH] Expose glyph outlines and plans for morphing beyond icons
+
+Add MorphFont (parse font bytes, read a glyph by code point in ems about
+its origin), MorphGlyph and MorphGlyphPlan (pair two glyphs' contours and
+interpolate them), so packages such as text morphing can build on
+morphnext's outline engine without importing lib/src.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ lib/morphnext.dart            |   1 +
+ lib/src/morph_glyph.dart      | 133 ++++++++++++++++++++++++++++++++++
+ lib/src/morph_repository.dart |   6 +-
+ test/morph_glyph_test.dart    |  50 +++++++++++++
+ 4 files changed, 188 insertions(+), 2 deletions(-)
+ create mode 100644 lib/src/morph_glyph.dart
+ create mode 100644 test/morph_glyph_test.dart
+
+diff --git a/lib/morphnext.dart b/lib/morphnext.dart
+index ffa5d89..64e1bce 100644
+--- a/lib/morphnext.dart
++++ b/lib/morphnext.dart
+@@ -3,6 +3,7 @@ library;
+ 
+ export 'package:flutter/physics.dart' show SpringDescription;
+ export 'src/cache/morph_cache.dart' show MorphCache;
++export 'src/morph_glyph.dart' show MorphFont, MorphGlyph, MorphGlyphPlan;
+ export 'src/morph_spring.dart' show MorphSprings;
+ export 'src/widgets/animated_morph_icon.dart' show AnimatedMorphIcon;
+ export 'src/widgets/morph_icon.dart' show MorphIcon;
+diff --git a/lib/src/morph_glyph.dart b/lib/src/morph_glyph.dart
+new file mode 100644
+index 0000000..84d18c7
+--- /dev/null
++++ b/lib/src/morph_glyph.dart
+@@ -0,0 +1,133 @@
++import 'dart:typed_data';
++
++import 'font/open_type_font.dart';
++import 'geometry/morph_plan.dart';
++import 'geometry/resample.dart';
++import 'geometry/shape.dart';
++import 'morph_repository.dart' show contourPointCountFor;
++
++/// A font file's outlines, for morphing glyphs outside `MorphIcon`: text,
++/// custom painters, or icons placed by the caller.
++///
++/// `MorphIcon` reads a glyph from a bundled icon font and places it in an
++/// icon box. This is the same outline reader without the box: glyphs come
++/// back in ems about their own origin, so the caller can place them (for
++/// example at the pen positions a `TextPainter` laid out).
++final class MorphFont {
++  MorphFont._(this._font);
++
++  /// Parses an OpenType font file (TrueType `glyf` or CFF outlines).
++  ///
++  /// Throws a [FormatException] if [bytes] isn't a font morphnext can read.
++  factory MorphFont.parse(Uint8List bytes) =>
++      MorphFont._(OpenTypeFont.parse(bytes));
++
++  final OpenTypeFont _font;
++
++  /// Whether the font maps [codePoint] to a glyph.
++  bool contains(int codePoint) => _font.containsCodePoint(codePoint);
++
++  /// The outline of [codePoint], or null when the font lacks it or its glyph
++  /// has no contours (a space).
++  ///
++  /// The variable-font axes select an instance when the font declares them,
++  /// as `MorphIcon`'s parameters of the same names do.
++  MorphGlyph? glyph(
++    int codePoint, {
++    double? weight,
++    double? fill,
++    double? grade,
++    double? opticalSize,
++  }) {
++    if (!_font.containsCodePoint(codePoint)) return null;
++    final outline = _font.glyphForCodePoint(codePoint, (
++      fill: fill,
++      weight: weight,
++      grade: grade,
++      opticalSize: opticalSize,
++    ));
++    final metrics = outline.metrics;
++    final upm = metrics.unitsPerEm.toDouble();
++    if (upm <= 0 || outline.contours.isEmpty) return null;
++    final contours = <CubicContour>[
++      for (final contour in outline.contours)
++        CubicContour(
++          Float64List.fromList(<double>[
++            for (var i = 0; i < contour.points.length; i += 2) ...<double>[
++              contour.points[i] / upm,
++              (metrics.ascender - contour.points[i + 1]) / upm,
++            ],
++          ]),
++        ),
++    ];
++    final shape = sampleContoursWithPointCounts(
++      contours,
++      pointCounts: <int>[for (final c in contours) contourPointCountFor(c)],
++      fillRule: MorphFillRule.nonZero,
++    );
++    if (shape.contours.isEmpty) return null;
++    return MorphGlyph._(
++      shape,
++      advance: outline.advanceWidth / upm,
++      ascender: metrics.ascender / upm,
++      descender: metrics.descender / upm,
++    );
++  }
++}
++
++/// One glyph's outline, sampled for morphing.
++///
++/// Coordinates are in ems: x to the right of the glyph's origin, y down
++/// from the font's [ascender] (so the baseline is at y = [ascender]).
++final class MorphGlyph {
++  MorphGlyph._(
++    this._shape, {
++    required this.advance,
++    required this.ascender,
++    required this.descender,
++  });
++
++  final MorphShape _shape;
++
++  /// The glyph's advance width, in ems.
++  final double advance;
++
++  /// The font's ascender, in ems above the baseline.
++  final double ascender;
++
++  /// The font's descender, in ems (negative below the baseline).
++  final double descender;
++
++  /// How many closed contours the outline has.
++  int get contourCount => _shape.contours.length;
++}
++
++/// The morph from one [MorphGlyph] to another, paired contour by contour as
++/// `MorphIcon` pairs icons.
++final class MorphGlyphPlan {
++  MorphGlyphPlan._(this._plan);
++
++  /// Plans the morph from [from] to [to].
++  factory MorphGlyphPlan(MorphGlyph from, MorphGlyph to) =>
++      MorphGlyphPlan._(buildMorphPlan(from._shape, to._shape));
++
++  final MorphPlan _plan;
++
++  /// How many contour pairs the morph draws.
++  int get contourCount => _plan.items.length;
++
++  /// Whether every contour of each glyph paired with exactly one contour of
++  /// the other, so no contour grows from or shrinks to a point.
++  bool get isOneToOne => _plan.items.every(
++    (item) => !item.sourceCollapsed && !item.targetCollapsed,
++  );
++
++  /// Allocates one output buffer per contour pair, for [interpolate].
++  List<Float64List> allocateOutput() => _plan.allocateOutput();
++
++  /// Writes the outline at [t] (0 is `from`, 1 is `to`) into [output]: one
++  /// closed polygon per contour pair, interleaved x, y in the glyphs' ems.
++  /// Fill it with the non-zero rule.
++  void interpolate(double t, List<Float64List> output) =>
++      _plan.interpolate(t, output);
++}
+diff --git a/lib/src/morph_repository.dart b/lib/src/morph_repository.dart
+index 5f664f6..3f8c6d3 100644
+--- a/lib/src/morph_repository.dart
++++ b/lib/src/morph_repository.dart
+@@ -143,7 +143,7 @@ final class MorphRepository {
+     final shape = sampleContoursWithPointCounts(
+       normalized,
+       pointCounts: <int>[
+-        for (final contour in normalized) _pointCountFor(contour),
++        for (final contour in normalized) contourPointCountFor(contour),
+       ],
+       fillRule: MorphFillRule.nonZero,
+     );
+@@ -154,7 +154,9 @@ final class MorphRepository {
+   }
+ }
+ 
+-int _pointCountFor(CubicContour contour) {
++/// Points sampled for a glyph contour: [_samplesPerCubicSegment] per curve,
++/// in powers of two between the minimum and maximum counts.
++int contourPointCountFor(CubicContour contour) {
+   final required = contour.segmentCount * _samplesPerCubicSegment;
+   var pointCount = _minimumContourPointCount;
+   while (pointCount < required && pointCount < _maximumContourPointCount) {
+diff --git a/test/morph_glyph_test.dart b/test/morph_glyph_test.dart
+new file mode 100644
+index 0000000..f5efd28
+--- /dev/null
++++ b/test/morph_glyph_test.dart
+@@ -0,0 +1,50 @@
++import 'dart:typed_data';
++
++import 'package:flutter_test/flutter_test.dart';
++import 'package:morphnext/morphnext.dart';
++
++import 'support/test_font_builder.dart';
++
++void main() {
++  final font = MorphFont.parse(TestFontBuilder.trueType());
++
++  test('reads a glyph in ems about its origin', () {
++    final glyph = font.glyph(TestFontBuilder.squareWithHoleCodePoint)!;
++    expect(glyph.contourCount, 2);
++    expect(glyph.advance, greaterThan(0));
++    expect(glyph.ascender, greaterThan(0));
++    expect(glyph.descender, lessThanOrEqualTo(0));
++  });
++
++  test('a missing or empty glyph is null', () {
++    expect(font.contains(0x41), isFalse);
++    expect(font.glyph(0x41), isNull);
++    expect(font.glyph(TestFontBuilder.emptyCodePoint), isNull);
++  });
++
++  test('a plan between two glyphs pairs their contours', () {
++    final a = font.glyph(TestFontBuilder.squareWithHoleCodePoint)!;
++    final b = font.glyph(TestFontBuilder.diamondWithHoleCodePoint)!;
++    final plan = MorphGlyphPlan(a, b);
++    expect(plan.contourCount, 2);
++    expect(plan.isOneToOne, isTrue);
++
++    final out = plan.allocateOutput();
++    for (final t in <double>[0, .5, 1]) {
++      plan.interpolate(t, out);
++      expect(out, hasLength(2));
++      expect(out.every((points) => points.every((v) => v.isFinite)), isTrue);
++    }
++  });
++
++  test('a plan to a glyph with fewer contours is not one to one', () {
++    final a = font.glyph(TestFontBuilder.squareWithHoleCodePoint)!;
++    final b = font.glyph(TestFontBuilder.chevronCodePoint)!;
++    expect(b.contourCount, 1);
++    expect(MorphGlyphPlan(a, b).isOneToOne, isFalse);
++  });
++
++  test('rejects bytes that are not a font', () {
++    expect(() => MorphFont.parse(Uint8List(16)), throwsFormatException);
++  });
++}
+-- 
+2.55.0
+

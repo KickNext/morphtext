@@ -1,0 +1,31 @@
+name: morphtext_example
+description: "MorphText and AnimatedMorphText: a word going light to bold, and small to large."
+publish_to: none
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.9.0 <4.0.0"
+  flutter: ">=3.32.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  morphtext:
+    path: ../
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  # Fraunces (SIL OFL 1.1, fonts/Fraunces-OFL.txt): two static weights, as
+  # MorphText reads each letter's outline from the bundled file.
+  fonts:
+    - family: Fraunces
+      fonts:
+        - asset: fonts/Fraunces-300-normal.ttf
+          weight: 300
+        - asset: fonts/Fraunces-600-normal.ttf
+          weight: 600

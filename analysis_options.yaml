@@ -1,0 +1,13 @@
+analyzer:
+  exclude:
+    - build/**
+    # Written for the morphnext API proposed in upstream/; it compiles only
+    # against the patched morphnext.
+    - upstream/**
+include: package:flutter_lints/flutter.yaml
+
+linter:
+  rules:
+    - public_member_api_docs
+    - prefer_final_locals
+    - sort_constructors_first

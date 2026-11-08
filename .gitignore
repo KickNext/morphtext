@@ -1,0 +1,11 @@
+.dart_tool/
+.packages
+build/
+pubspec.lock
+.flutter-plugins
+.flutter-plugins-dependencies
+*.iml
+.idea/
+# Raw frames from tool/record_demo_test.dart
+doc/frames/
+test/failures/
