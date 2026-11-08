@@ -3,23 +3,40 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:morphtext/morphtext.dart';
 import 'package:morphtext_example/main.dart';
 
+MorphText _stone(WidgetTester tester) => tester.widget<MorphText>(
+  find.descendant(
+    of: find.byType(AnimatedMorphText),
+    matching: find.byType(MorphText),
+  ),
+);
+
 void main() {
-  testWidgets('tapping the word morphs it bold', (tester) async {
+  testWidgets('tapping the word morphs it into the next stone', (tester) async {
     await tester.pumpWidget(const MorphTextDemo());
     await tester.pump();
-
-    MorphText amethyst() => tester.widget<MorphText>(
-      find.byWidgetPredicate((w) => w is MorphText && w.text == 'Amethyst'),
-    );
-    expect(amethyst().to.fontWeight, FontWeight.w300);
+    expect(_stone(tester).toText, 'Amethyst');
 
     await tester.tap(find.byType(AnimatedMorphText));
-    await tester.pump(); // rebuilds with the new style; the spring starts
+    await tester.pump(); // rebuilds with the new word; the spring starts
     await tester.pump(const Duration(milliseconds: 50));
-    expect(amethyst().t, inExclusiveRange(0, 1));
+    expect(
+      (_stone(tester).text, _stone(tester).toText),
+      ('Amethyst', 'Citrine'),
+    );
+    expect(_stone(tester).t, inExclusiveRange(0, 1));
     await tester.pumpAndSettle();
-    expect(amethyst().to.fontWeight, FontWeight.w600);
-    expect(amethyst().t, 1);
+    expect(_stone(tester).t, 1);
+  });
+
+  testWidgets('Sans morphs the word into another font', (tester) async {
+    await tester.pumpWidget(const MorphTextDemo());
+    await tester.tap(find.text('Sans'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+    expect(_stone(tester).from.fontFamily, 'Fraunces');
+    expect(_stone(tester).to.fontFamily, 'RedHatDisplay');
+    await tester.pumpAndSettle();
+    expect(_stone(tester).t, 1);
   });
 
   testWidgets('the slider grows the second word', (tester) async {

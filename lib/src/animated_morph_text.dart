@@ -4,19 +4,21 @@ import 'package:morphnext/morphnext.dart' show MorphSprings;
 
 import 'morph_text.dart';
 
-/// [text] that morphs, letter by letter, to each new [style] it's given.
+/// [text] in [style] that morphs, letter by letter, to each new text or
+/// style it's given.
 ///
 /// The implicit counterpart of [MorphText], as morphnext's
-/// `AnimatedMorphIcon` is to `MorphIcon`: changing [style] starts a spring
-/// transition from the style on screen. Turning back before it settles
-/// reverses from where the word is, keeping its velocity. A third style
-/// arriving mid-flight starts from whichever of the two the word is nearer.
+/// `AnimatedMorphIcon` is to `MorphIcon`: changing [text], [style] or both
+/// starts a spring transition from what's on screen. A new word morphs from
+/// the old one, letter into letter; a new style morphs
+/// weight, size, colour or font. Turning back before it settles reverses
+/// from where the word is, keeping its velocity. A third target arriving
+/// mid-flight starts from whichever of the two the word is nearer.
 ///
-/// Changing [text] doesn't morph; the new text appears in [style]. When the
-/// platform asks for reduced motion
-/// ([MediaQueryData.disableAnimations]), style changes apply at once.
+/// When the platform asks for reduced motion
+/// ([MediaQueryData.disableAnimations]), changes apply at once.
 class AnimatedMorphText extends StatefulWidget {
-  /// Creates text that morphs to each new [style].
+  /// Creates text that morphs to each new [text] and [style].
   const AnimatedMorphText(
     this.text, {
     super.key,
@@ -26,7 +28,7 @@ class AnimatedMorphText extends StatefulWidget {
     this.semanticsLabel,
   });
 
-  /// The text to draw, on one line.
+  /// The text to show, on one line, and to morph into when it changes.
   final String text;
 
   /// The style to show, and to morph toward when it changes.
@@ -36,8 +38,8 @@ class AnimatedMorphText extends StatefulWidget {
   /// work here too).
   final SpringDescription spring;
 
-  /// Called when a transition settles on its style; not for the first
-  /// style, nor for a transition that was interrupted.
+  /// Called when a transition settles; not for the first text and style,
+  /// nor for a transition that was interrupted.
   final VoidCallback? onEnd;
 
   /// The label announced for this text; [text] when null.
@@ -47,29 +49,30 @@ class AnimatedMorphText extends StatefulWidget {
   State<AnimatedMorphText> createState() => _AnimatedMorphTextState();
 }
 
+typedef _End = (String, TextStyle);
+
 class _AnimatedMorphTextState extends State<AnimatedMorphText>
     with SingleTickerProviderStateMixin {
   late final AnimationController _t = AnimationController.unbounded(
     vsync: this,
     value: 1,
   );
-  late TextStyle _from = widget.style;
-  late TextStyle _to = widget.style;
+  late _End _from = (widget.text, widget.style);
+  late _End _to = _from;
   var _run = 0;
 
   @override
   void didUpdateWidget(AnimatedMorphText old) {
     super.didUpdateWidget(old);
-    final style = widget.style;
-    if (widget.text != old.text ||
-        (MediaQuery.maybeDisableAnimationsOf(context) ?? false)) {
-      _settle(style);
+    final target = (widget.text, widget.style);
+    if (MediaQuery.maybeDisableAnimationsOf(context) ?? false) {
+      _settle(target);
       return;
     }
-    if (style == _to) return;
+    if (target == _to) return;
     double velocity;
-    if (style == _from && _t.isAnimating) {
-      // Turning back: the same word, run the other way from here.
+    if (target == _from && _t.isAnimating) {
+      // Turning back: run the same morph the other way from here.
       _from = _to;
       velocity = -_t.velocity;
       _t.value = 1 - _t.value;
@@ -78,7 +81,7 @@ class _AnimatedMorphTextState extends State<AnimatedMorphText>
       velocity = 0;
       _t.value = 0;
     }
-    _to = style;
+    _to = target;
     final run = ++_run;
     _t
         .animateWith(SpringSimulation(widget.spring, _t.value, 1, velocity))
@@ -90,10 +93,10 @@ class _AnimatedMorphTextState extends State<AnimatedMorphText>
         });
   }
 
-  void _settle(TextStyle style) {
+  void _settle(_End target) {
     _run++;
     _t.stop();
-    _from = _to = style;
+    _from = _to = target;
     _t.value = 1;
   }
 
@@ -108,11 +111,12 @@ class _AnimatedMorphTextState extends State<AnimatedMorphText>
   Widget build(BuildContext context) => AnimatedBuilder(
     animation: _t,
     builder: (context, _) => MorphText(
-      widget.text,
-      from: _from,
-      to: _to,
+      _from.$1,
+      toText: _to.$1,
+      from: _from.$2,
+      to: _to.$2,
       t: _t.value,
-      semanticsLabel: widget.semanticsLabel,
+      semanticsLabel: widget.semanticsLabel ?? widget.text,
     ),
   );
 }

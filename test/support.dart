@@ -20,6 +20,17 @@ const light = TextStyle(
 final bold = light.copyWith(fontWeight: FontWeight.w600);
 final big = light.copyWith(fontSize: 64);
 
+/// Red Hat Display Black (OFL, CFF outlines): another font entirely.
+const sans = TextStyle(
+  fontFamily: 'RedHatDisplay',
+  package: 'morphtext',
+  fontWeight: FontWeight.w900,
+  fontSize: 32,
+  color: Color(0xff1a73e8),
+);
+const sansFamily = 'packages/morphtext/RedHatDisplay';
+const sansAsset = 'packages/morphtext/fonts/RedHatDisplay-Black.otf';
+
 const family = 'packages/morphtext/Fraunces';
 const assets = {
   300: 'packages/morphtext/fonts/Fraunces-300-normal.ttf',
@@ -40,6 +51,12 @@ Future<void> loadFonts() async {
     loader.addFont(Future.value(bytes));
   }
   await loader.load();
+
+  final sansBytes = ByteData.sublistView(
+    await File('test/fonts/RedHatDisplay-Black.otf').readAsBytes(),
+  );
+  fontBytes[sansAsset] = sansBytes;
+  await (FontLoader(sansFamily)..addFont(Future.value(sansBytes))).load();
 }
 
 /// An asset bundle with the fonts' manifest and files, as a built app has.
@@ -55,6 +72,12 @@ class TestFonts extends CachingAssetBundle {
               {'asset': asset, 'weight': weight},
           ],
         },
+        {
+          'family': sansFamily,
+          'fonts': [
+            {'asset': sansAsset, 'weight': 900},
+          ],
+        },
       ];
       return ByteData.sublistView(utf8.encode(jsonEncode(manifest)));
     }
@@ -62,6 +85,13 @@ class TestFonts extends CachingAssetBundle {
     if (bytes == null) throw FlutterError('No asset $key');
     return bytes;
   }
+}
+
+/// A bundle with no fonts in its manifest: MorphText draws plain text.
+class NoFonts extends CachingAssetBundle {
+  @override
+  Future<ByteData> load(String key) async =>
+      ByteData.sublistView(utf8.encode('[]'));
 }
 
 /// [child] in the test bundle, centred on a white page.

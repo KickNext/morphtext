@@ -66,36 +66,47 @@ Widget morph(String text, double size, double t, {Color? color}) => MorphText(
   t: t,
 );
 
-/// Act 1: one word around the corners of weight and size: light to bold,
-/// small to large, bold to light, large to small.
-Widget opening(double s) {
-  final corners = [
-    face(96),
-    face(96, weight: FontWeight.w600),
-    face(150, weight: FontWeight.w600),
-    face(150),
-    face(96),
-  ];
-  const at = [0.4, 1.3, 2.2, 3.1];
+/// Red Hat Display Black: another font entirely.
+TextStyle sansFace(double size, {Color? c}) =>
+    sans.copyWith(fontSize: size, color: c ?? ink);
+
+/// Text through [states] (a word and its style), springing from each to the
+/// next at the times in [at]; at rest on the first before them.
+Widget steps(double s, List<(String, TextStyle)> states, List<double> at) {
   var k = 0;
   while (k < at.length && s >= at[k]) {
     k++;
   }
-  // Morphing from corner k-1 to k since at[k-1]; before the first, at rest.
-  final from = corners[k == 0 ? 0 : k - 1], to = corners[k];
+  final from = states[k == 0 ? 0 : k - 1], to = states[k];
   final t = k == 0 ? 0.0 : spring(s - at[k - 1]);
-  return Center(
-    child: MorphText('Amethyst', from: from, to: to, t: t),
-  );
+  return MorphText(from.$1, toText: to.$1, from: from.$2, to: to.$2, t: t);
 }
 
-/// Act 2: a giant letter beside a phrase arriving word by word.
+/// Act 1: one word around the corners: light to bold, small to large,
+/// serif to sans, and back to where it started.
+Widget opening(double s) => Center(
+  child: steps(
+    s,
+    [
+      ('Amethyst', face(96)),
+      ('Amethyst', face(96, weight: FontWeight.w600)),
+      ('Amethyst', face(150, weight: FontWeight.w600)),
+      ('Amethyst', sansFace(150)),
+      ('Amethyst', face(96)),
+    ],
+    const [0.4, 1.3, 2.2, 3.1],
+  ),
+);
+
+/// Act 2: a giant letter becoming the next, beside a phrase becoming the
+/// next word, light and bold by turns, ending in another font.
 Widget specimen(double s) {
-  const letters = ['a', 'g', 'R', '&'];
-  const words = ['Every', 'letter,', 'outline', 'into outline.'];
-  const beat = (act3 - act2) / 4;
-  final k = ((s - act2) ~/ beat).clamp(0, 3);
-  final t = spring(s - act2 - k * beat - 0.2);
+  const letters = ['a', 'g', 'R', '&', 'Q'];
+  const words = ['Every', 'letter,', 'outline', 'into outline,', 'any font.'];
+  TextStyle style(int k, double size) => k == 4
+      ? sansFace(size)
+      : face(size, weight: k.isOdd ? FontWeight.w600 : FontWeight.w300);
+  final at = [for (var k = 0; k < 4; k++) act2 + .25 + k * 1.15];
   return Stack(
     children: [
       Positioned(
@@ -103,7 +114,11 @@ Widget specimen(double s) {
         width: 380,
         top: 0,
         bottom: 0,
-        child: Center(child: morph(letters[k], 300, t)),
+        child: Center(
+          child: steps(s, [
+            for (var k = 0; k < 5; k++) (letters[k], style(k, 300)),
+          ], at),
+        ),
       ),
       Positioned(
         left: 540,
@@ -112,7 +127,9 @@ Widget specimen(double s) {
         bottom: 0,
         child: Align(
           alignment: Alignment.centerLeft,
-          child: morph(words[k], 88, t),
+          child: steps(s, [
+            for (var k = 0; k < 5; k++) (words[k], style(k, 84)),
+          ], at),
         ),
       ),
     ],
@@ -179,7 +196,8 @@ Widget claim(double s) {
   );
 }
 
-/// Act 4: a grid of stones in a diagonal wave, half of them starting bold.
+/// Act 4: a grid of stones, each becoming another stone in another face,
+/// in a diagonal wave.
 Widget grid(double s) {
   const names = [
     'Amethyst', 'Citrine', 'Jade', 'Onyx', //
@@ -196,22 +214,33 @@ Widget grid(double s) {
           Row(
             children: [
               for (var c = 0; c < 4; c++)
-                Expanded(
-                  child: Center(
-                    child: morph(
-                      names[r * 4 + c],
-                      46,
-                      flips(s, [
-                        for (final at in [14.0, 15.5, 17.0]) at + .07 * (r + c),
-                      ], from: (r + c).isOdd ? 1 : 0),
-                      color: pastels[(r * 4 + c) % pastels.length],
-                    ),
-                  ),
-                ),
+                Expanded(child: Center(child: _cell(s, r, c, names))),
             ],
           ),
       ],
     ),
+  );
+}
+
+Widget _cell(double s, int r, int c, List<String> names) {
+  final n = r * 4 + c;
+  final color = pastels[n % pastels.length];
+  // Light, bold, sans, light again; every other cell a step ahead.
+  final faces = [
+    face(46, c: color),
+    face(46, weight: FontWeight.w600, c: color),
+    sansFace(42, c: color),
+  ];
+  final first = (r + c) % 3;
+  return steps(
+    s,
+    [
+      for (var k = 0; k < 4; k++)
+        (names[(n + 5 * k) % names.length], faces[(first + k) % 3]),
+    ],
+    [
+      for (final at in [14.0, 15.5, 17.0]) at + .07 * (r + c),
+    ],
   );
 }
 

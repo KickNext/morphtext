@@ -1,11 +1,12 @@
-// Text that morphs between two styles letter by letter, outline into outline:
-// a light word turns bold, or a small word grows, as one word, never two
-// crossfading. Each letter's outline in each style comes from the font file
-// itself (lib/src/engine.dart, on morphnext's outline engine).
+// Text that morphs letter by letter, outline into outline: a light word turns
+// bold, a serif word turns sans, a small word grows, or one word becomes
+// another, never two crossfading. Each letter's outline in each style comes
+// from the font file itself (lib/src/engine.dart, on morphnext's outline
+// engine).
 //
-// Flutter lays the word out in both styles (kerning, baseline and all), and
-// each letter's em square is carried between its two layouts; at the ends it
-// is plain text, pixel for pixel what a Text in that style draws.
+// Flutter lays out both ends (kerning, baseline and all), and each letter's
+// em square is carried from its place in one layout to its place in the
+// other; at the ends it is plain text, pixel for pixel what a Text draws.
 
 import 'dart:async';
 import 'dart:convert';
@@ -13,16 +14,25 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
+import 'align.dart';
 import 'engine.dart';
 
-/// [text] in [from]'s style at [t] = 0 and [to]'s at 1, morphing letter by
-/// letter in between: weight, size, slant and colour.
+/// [text] in [from]'s style at [t] = 0, morphing letter by letter into
+/// [toText] (or [text] again) in [to]'s style at [t] = 1.
 ///
-/// Both styles are merged onto the ambient [DefaultTextStyle], as a [Text]
-/// would merge them. Their font families must be bundled with the app (they
-/// appear in `FontManifest.json`), because each letter's outline is read
-/// from the font file: the nearest declared weight, upright or italic as the
-/// style asks. A font named by a package is written as
+/// The two styles can differ in anything: weight, size, colour, slant, and
+/// font family, so a serif word can turn into a sans one. They are merged
+/// onto the ambient [DefaultTextStyle], as a [Text] would merge them.
+///
+/// With [toText], one word becomes another: each letter morphs into its
+/// counterpart (mostly the letter at the same place; a word slides when
+/// that keeps letters as themselves), and any left over grow from or shrink
+/// to a point.
+///
+/// The font families must be bundled with the app (they appear in
+/// `FontManifest.json`), because each letter's outline is read from the font
+/// file: the nearest declared weight, upright or italic as the style asks. A
+/// font named by a package is written as
 /// `TextStyle(fontFamily: 'Fraunces', package: 'my_package')`.
 ///
 /// At `t <= 0` and `t >= 1`, and until the outlines are read, it draws plain
@@ -30,21 +40,26 @@ import 'engine.dart';
 /// can't be read (not in the bundled font, say) is drawn as text at its
 /// moving position instead of morphing.
 ///
-/// For a widget that animates by itself when its style changes, see
+/// For a widget that animates by itself when its text or style changes, see
 /// [AnimatedMorphText].
 class MorphText extends StatefulWidget {
-  /// Creates text morphing from [from] to [to] by [t].
+  /// Creates text morphing from [text] in [from] to [toText] (or [text]) in
+  /// [to], by [t].
   const MorphText(
     this.text, {
     super.key,
     required this.from,
     required this.to,
     required this.t,
+    this.toText,
     this.semanticsLabel,
   });
 
-  /// The text to draw, on one line.
+  /// The text at [t] = 0, on one line.
   final String text;
+
+  /// The text at [t] = 1; [text] when null.
+  final String? toText;
 
   /// The style at [t] = 0.
   final TextStyle from;
@@ -52,10 +67,11 @@ class MorphText extends StatefulWidget {
   /// The style at [t] = 1.
   final TextStyle to;
 
-  /// How far from [from] to [to], clamped to 0..1.
+  /// How far from the start to the end, clamped to 0..1.
   final double t;
 
-  /// The label announced for this text; [text] when null.
+  /// The label announced for this text; when null, [text] until halfway and
+  /// [toText] after.
   final String? semanticsLabel;
 
   @override
@@ -63,11 +79,12 @@ class MorphText extends StatefulWidget {
 }
 
 class _MorphTextState extends State<MorphText> {
-  /// Each letter's morph; null for a letter with no outline (a space) or
-  /// one that couldn't be read.
-  List<GlyphMorph?>? _letters;
+  /// The letters' morphs, once read.
+  List<_Pair>? _pairs;
   Object? _key;
   _Layout? _a, _b;
+
+  String get _toText => widget.toText ?? widget.text;
 
   @override
   void didChangeDependencies() {
@@ -92,6 +109,7 @@ class _MorphTextState extends State<MorphText> {
     final key = (
       bundle,
       widget.text,
+      _toText,
       from.fontFamily,
       from.fontWeight,
       from.fontStyle,
@@ -101,17 +119,29 @@ class _MorphTextState extends State<MorphText> {
     );
     if (key == _key) return;
     _key = key;
-    _letters = null;
-    final text = widget.text;
+    _pairs = null;
+    final ra = widget.text.runes.toList(), rb = _toText.runes.toList();
     unawaited(() async {
       try {
         final fonts = _Fonts.of(bundle);
         final a = await fonts.face(from);
         final b = await fonts.face(to);
-        final letters = [
-          for (final rune in text.runes) fonts.morph(a, b, rune),
+        final pairs = [
+          for (final (i, j) in alignLetters(ra, rb))
+            _Pair(
+              i,
+              j,
+              i != null ? ra[i] : null,
+              j != null ? rb[j] : null,
+              i != null && j != null
+                  ? fonts.morph(a, b, ra[i], rb[j])
+                  : i != null
+                  // Alone: its own outline, which the painter shrinks.
+                  ? fonts.morph(a, a, ra[i], ra[i])
+                  : fonts.morph(b, b, rb[j!], rb[j]),
+            ),
         ];
-        if (mounted && _key == key) setState(() => _letters = letters);
+        if (mounted && _key == key) setState(() => _pairs = pairs);
       } on Object catch (e) {
         // Unreadable: it stays plain text, switching at the middle.
         _warn(from.fontFamily, to.fontFamily, e);
@@ -127,9 +157,9 @@ class _MorphTextState extends State<MorphText> {
     final (from, to) = _styles();
     final t = widget.t.isNaN ? 0.0 : widget.t.clamp(0.0, 1.0);
     final a = _a = _Layout.reuse(_a, widget.text, from, scaler, direction);
-    final b = _b = _Layout.reuse(_b, widget.text, to, scaler, direction);
+    final b = _b = _Layout.reuse(_b, _toText, to, scaler, direction);
     return Semantics(
-      label: widget.semanticsLabel ?? widget.text,
+      label: widget.semanticsLabel ?? (t < .5 ? widget.text : _toText),
       textDirection: direction,
       child: ExcludeSemantics(
         child: CustomPaint(
@@ -137,7 +167,7 @@ class _MorphTextState extends State<MorphText> {
           painter: _MorphTextPainter(
             a,
             b,
-            _letters,
+            _pairs,
             t,
             Color.lerp(from.color, to.color, t) ?? const Color(0xff000000),
           ),
@@ -158,6 +188,17 @@ void _warn(String? a, String? b, Object error) {
   );
 }
 
+/// One letter of the start ([i], [runeA]) becoming one of the end ([j],
+/// [runeB]); either may be missing, for a letter that shrinks away or grows
+/// in. [morph] is null for a letter with no outline (a space) or one that
+/// couldn't be read.
+class _Pair {
+  _Pair(this.i, this.j, this.runeA, this.runeB, this.morph);
+  final int? i, j;
+  final int? runeA, runeB;
+  final GlyphMorph? morph;
+}
+
 /// The word laid out in one style: its size, its em in pixels, and each
 /// letter's pen position on the baseline (kerning included).
 class _Layout {
@@ -170,9 +211,7 @@ class _Layout {
       maxLines: 1,
     )..layout();
     size = painter.size;
-    final baseline = painter.computeDistanceToActualBaseline(
-      TextBaseline.alphabetic,
-    );
+    baseline = painter.computeDistanceToActualBaseline(TextBaseline.alphabetic);
     var i = 0;
     for (final rune in text.runes) {
       final n = String.fromCharCode(rune).length;
@@ -207,7 +246,18 @@ class _Layout {
   final TextDirection direction;
   final double em;
   late final Size size;
+  late final double baseline;
   final pens = <Offset?>[];
+
+  /// Where a letter that isn't in this layout comes from or goes to: the
+  /// pen of the letter at [index] (the end of the word past the last one),
+  /// a little above the baseline.
+  Offset gap(int index) {
+    final x = index < pens.length
+        ? (pens[index]?.dx ?? size.width)
+        : size.width;
+    return Offset(x, baseline - .3 * em);
+  }
 }
 
 /// One asset bundle's fonts: its manifest, each face read once, and the
@@ -224,7 +274,7 @@ class _Fonts {
 
   /// Recently built letter morphs, shared by every MorphText on the bundle.
   /// (A map literal keeps insertion order: the first key is the oldest.)
-  final _morphs = <(String, String, int), GlyphMorph?>{};
+  final _morphs = <(String, String, int, int), GlyphMorph?>{};
   static const _maxMorphs = 512;
 
   /// The face [style] names: the nearest weight in its family, upright or
@@ -260,17 +310,17 @@ class _Fonts {
         );
   }
 
-  /// [rune]'s morph from face [a] to face [b], or null if either outline
-  /// can't be read.
-  GlyphMorph? morph(_Face a, _Face b, int rune) {
-    final key = (a.asset, b.asset, rune);
+  /// The morph from [runeA] in face [a] to [runeB] in face [b], or null if
+  /// either outline can't be read.
+  GlyphMorph? morph(_Face a, _Face b, int runeA, int runeB) {
+    final key = (a.asset, b.asset, runeA, runeB);
     if (_morphs.containsKey(key)) {
       // Most recently used goes last.
       return _morphs[key] = _morphs.remove(key);
     }
     GlyphMorph? m;
     try {
-      final sa = a.font.shape(rune), sb = b.font.shape(rune);
+      final sa = a.font.shape(runeA), sb = b.font.shape(runeB);
       if (sa != null && sb != null) m = GlyphMorph(sa, sb);
     } on Object {
       m = null;
@@ -288,9 +338,9 @@ class _Face {
 }
 
 class _MorphTextPainter extends CustomPainter {
-  _MorphTextPainter(this.a, this.b, this.letters, this.t, this.color);
+  _MorphTextPainter(this.a, this.b, this.pairs, this.t, this.color);
   final _Layout a, b;
-  final List<GlyphMorph?>? letters;
+  final List<_Pair>? pairs;
   final double t;
   final Color color;
 
@@ -298,7 +348,7 @@ class _MorphTextPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     // At either end, or until the outlines are read: the word as text,
     // centred in the box (exactly what a Text in that style draws).
-    final p = letters;
+    final p = pairs;
     if (t <= 0 || t >= 1 || p == null) {
       final at = t < .5 ? a : b;
       final painter = TextPainter(
@@ -332,20 +382,54 @@ class _MorphTextPainter extends CustomPainter {
       (size.height - b.size.height) / 2,
     );
     final path = Path()..fillType = PathFillType.nonZero;
-    final runes = a.text.runes.toList();
-    for (var i = 0; i < p.length; i++) {
-      final letter = p[i];
-      final pa = a.pens[i], pb = b.pens[i];
-      if (pa == null || pb == null) continue;
+    for (var k = 0; k < p.length; k++) {
+      final pair = p[k];
+      final i = pair.i, j = pair.j;
+      // Each end's em square; a point where the letter is absent, at the
+      // place of the next letter that is there.
+      Rect? sqA, sqB;
+      Offset? penA, penB;
+      if (i != null) {
+        final pen = a.pens[i];
+        if (pen == null) continue;
+        penA = pen + offA;
+      }
+      if (j != null) {
+        final pen = b.pens[j];
+        if (pen == null) continue;
+        penB = pen + offB;
+      }
+      final letter = pair.morph;
       if (letter == null) {
-        _fallback(canvas, runes[i], Offset.lerp(pa + offA, pb + offB, t)!);
+        _fallback(canvas, pair, penA, penB, p, k, offA, offB);
         continue;
       }
-      final sq = Rect.lerp(
-        _square(pa + offA, a.em, letter, 0),
-        _square(pb + offB, b.em, letter, 1),
-        t,
-      )!;
+      if (penA != null) {
+        sqA = _square(penA, a.em, letter.fromAscender);
+      } else {
+        sqA = Rect.fromCenter(
+          center: _next(p, k, a, true) + offA,
+          width: 0,
+          height: 0,
+        );
+      }
+      if (penB != null) {
+        sqB = _square(penB, b.em, letter.toAscender);
+      } else {
+        sqB = Rect.fromCenter(
+          center: _next(p, k, b, false) + offB,
+          width: 0,
+          height: 0,
+        );
+      }
+      // A letter alone is gone by halfway, or grows in from there, so it
+      // never lingers as small text beside the others.
+      final along = i == null
+          ? ((t - .5) * 2).clamp(0.0, 1.0)
+          : j == null
+          ? (t * 2).clamp(0.0, 1.0)
+          : t;
+      final sq = Rect.lerp(sqA, sqB, along)!;
       for (final points in letter.at(t)) {
         _contour(path, points, sq);
       }
@@ -353,18 +437,41 @@ class _MorphTextPainter extends CustomPainter {
     canvas.drawPath(path, Paint()..color = color);
   }
 
-  /// The letter's em square in one layout: from its pen position, its top
-  /// an ascender above the baseline, as the outline was normalised.
-  static Rect _square(Offset pen, double em, GlyphMorph letter, int end) {
-    final asc = end == 0 ? letter.fromAscender : letter.toAscender;
-    return Rect.fromLTWH(pen.dx, pen.dy - asc * em, em, em);
+  /// Where, in [layout], the letter of pair [k] would be if it were there:
+  /// the place of the next letter that is, or the end of the word.
+  static Offset _next(List<_Pair> p, int k, _Layout layout, bool start) {
+    for (var n = k + 1; n < p.length; n++) {
+      final index = start ? p[n].i : p[n].j;
+      if (index != null) return layout.gap(index);
+    }
+    return layout.gap(layout.pens.length);
   }
 
-  /// A letter with no outline to morph: drawn as text, in the style between
-  /// the two, its baseline on the moving pen. Spaces draw nothing.
-  void _fallback(Canvas canvas, int rune, Offset pen) {
+  /// A letter's em square in one layout: from its pen position, its top an
+  /// ascender above the baseline, as the outline was normalised.
+  static Rect _square(Offset pen, double em, double ascender) =>
+      Rect.fromLTWH(pen.dx, pen.dy - ascender * em, em, em);
+
+  /// A letter with no outline to morph: drawn as text, the nearer end's
+  /// letter in the style between the two, its baseline on the moving pen.
+  /// Spaces draw nothing.
+  void _fallback(
+    Canvas canvas,
+    _Pair pair,
+    Offset? penA,
+    Offset? penB,
+    List<_Pair> p,
+    int k,
+    Offset offA,
+    Offset offB,
+  ) {
+    final rune = t < .5 ? pair.runeA : pair.runeB;
+    if (rune == null) return;
     final char = String.fromCharCode(rune);
     if (char.trim().isEmpty) return;
+    final from = penA ?? Offset(_next(p, k, a, true).dx, a.baseline) + offA;
+    final to = penB ?? Offset(_next(p, k, b, false).dx, b.baseline) + offB;
+    final pen = Offset.lerp(from, to, t)!;
     final style = TextStyle.lerp(a.style, b.style, t)!.copyWith(color: color);
     final painter = TextPainter(
       text: TextSpan(text: char, style: style),
@@ -394,7 +501,7 @@ class _MorphTextPainter extends CustomPainter {
   @override
   bool shouldRepaint(_MorphTextPainter old) =>
       old.t != t ||
-      old.letters != letters ||
+      old.pairs != pairs ||
       old.color != color ||
       old.a != a ||
       old.b != b;

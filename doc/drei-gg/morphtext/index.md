@@ -1,11 +1,11 @@
 ---
-title: One word, two weights
+title: One word, any font
 date: 2026-11-08
 tag: ship
 label: morphtext 0.1
-summary: A Flutter package that morphs text between two styles letter by letter, outline into outline, on morphnext's engine.
+summary: A Flutter package that morphs text letter by letter, outline into outline: weight, size, font, even one word into another, on morphnext's engine.
 image: ./demo.webp
-image_alt: Fraunces words and letters morphing from light to bold, ending in a grid of stone names
+image_alt: Words and letters morphing between weights, sizes, fonts and other words, ending in a grid of stone names
 draft: true
 ---
 
@@ -13,7 +13,9 @@ Numina has a moment where a stone's name flies from the light title on Today to 
 
 So the name doesn't crossfade any more. Each letter's real outline is read from the font file in both weights, and the light *A* turns into the bold one, contour into contour. At either end it's plain text, pixel for pixel what Flutter's `Text` draws. In the middle it's the weights the font never shipped.
 
-![Amethyst, a giant ampersand, a blue Quartz counting its weight, and a grid of stones, all morphing light to bold](./demo.webp)
+Once letters are outlines, the font doesn't have to be the same font. A serif *Amethyst* melts into a sans one, serifs and all. And the word doesn't have to be the same word: *Amethyst* becomes *Citrine*, each letter turning into the one at its place, the leftovers shrinking away.
+
+![Amethyst through weights, sizes and a sans; a giant letter becoming the next; a grid of stones becoming other stones](./demo.webp)
 
 ## Standing on morphnext
 
@@ -23,12 +25,12 @@ morphtext is the text layer on top. Flutter lays the word out in both styles (pe
 
 ```dart
 AnimatedMorphText(
-  'Amethyst',
-  style: selected ? bold : light,
+  stones[i],                 // a new word morphs from the old one
+  style: loud ? sans : serif, // so does a new font
 )
 ```
 
-Or drive it yourself with `MorphText(text, from:, to:, t:)`.
+Or drive it yourself with `MorphText(text, toText:, from:, to:, t:)`.
 
 ```pull
 Letters are glyphs too.
@@ -36,8 +38,10 @@ Letters are glyphs too.
 ```
 
 ```notes
-+ MorphText: text between two styles, driven by t
-+ AnimatedMorphText: springs to each new style, reverses mid-flight
++ MorphText: text between any two styles, driven by t
++ Font to font: serif into sans, any two bundled faces
++ Word to word: each letter becomes its counterpart, leftovers shrink away
++ AnimatedMorphText: springs to each new word and style, reverses mid-flight
 + Plain text at both ends, at the same size and place as Text
 ~ Fonts must be bundled: the outlines come from the files
 ! Ligatures and contextual scripts don't morph faithfully (yet)
