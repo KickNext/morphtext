@@ -5,7 +5,7 @@ tag: ship
 label: morphtext 0.1
 summary: A Flutter package that morphs text between two styles letter by letter, outline into outline, on morphnext's engine.
 image: ./demo.webp
-image_alt: "Amethyst" morphing from light to bold, and "Rose Quartz" growing from small to large
+image_alt: Fraunces words and letters morphing from light to bold, ending in a grid of stone names
 draft: true
 ---
 
@@ -13,7 +13,7 @@ Numina has a moment where a stone's name flies from the light title on Today to 
 
 So the name doesn't crossfade any more. Each letter's real outline is read from the font file in both weights, and the light *A* turns into the bold one, contour into contour. At either end it's plain text, pixel for pixel what Flutter's `Text` draws. In the middle it's the weights the font never shipped.
 
-![Amethyst going light to bold, Rose Quartz going small to large](./demo.webp)
+![Amethyst, a giant ampersand, a blue Quartz counting its weight, and a grid of stones, all morphing light to bold](./demo.webp)
 
 ## Standing on morphnext
 

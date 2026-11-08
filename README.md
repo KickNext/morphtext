@@ -8,7 +8,7 @@ Each letter's real outline in each style is read from your bundled font and
 morphed into the other, and at either end it is plain text, pixel for pixel
 what a `Text` draws.
 
-![A word morphing from light to bold, and another from small to large](doc/demo.webp)
+![Fraunces words and letters morphing from light to bold: Amethyst, a giant a, g, R and &, a blue Quartz with its weight counting from 300 to 600, and a grid of stone names in a wave](doc/demo.webp)
 
 morphtext is a companion to [morphnext](https://github.com/KickNext/morphnext)
 by KickNext, which morphs icon glyphs read from icon fonts. morphnext is the
@@ -160,8 +160,11 @@ and letter plans are shared by every `MorphText` on the bundle.
 ## Example
 
 `example/` is a small app: tap a word to make it bold, slide to grow another.
-The demo above is rendered frame by frame in a widget test
-(`tool/record_demo_test.dart`) and encoded by `tool/record_demo.sh`.
+
+The hero above follows the shape of morphnext's own, so the two read as a
+pair. It is rendered frame by frame in a widget test
+(`tool/record_demo_test.dart`, 1280x720 at 60 fps) and encoded by
+`tool/record_demo.sh`.
 
 ## License and attribution
 
