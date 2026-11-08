@@ -20,7 +20,7 @@ that file and the pubspec.
   one test file). morphnext's suite passes (131 tests); analysis and format
   clean.
 - `engine_public_api.dart`: morphtext's `engine.dart` rewritten on that API.
-  Verified: morphtext's 11 tests pass against the patched morphnext through a
+  Verified: morphtext's 24 tests (words and fonts included) pass against the patched morphnext through a
   path override.
 
 When a morphnext release ships it: copy `engine_public_api.dart` over
