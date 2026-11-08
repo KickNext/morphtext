@@ -1,4 +1,6 @@
-## 0.1.0-dev.1
+## 0.1.0
+
+First release.
 
 - `MorphText`: text morphing letter by letter, driven by `progress` (an
   `Animation<double>`, as morphnext's `MorphIcon` takes it), between any two

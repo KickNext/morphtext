@@ -40,8 +40,6 @@ letter's outline gives the in-between shapes no font ever shipped.
 
 ## Install
 
-> Draft: not on pub.dev yet.
-
 ```yaml
 dependencies:
   morphtext: ^0.1.0
