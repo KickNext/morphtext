@@ -49,7 +49,7 @@ Letters are glyphs too.
 
 ## Where it's at
 
-It's MIT, it lives at github.com/alguintu/morphtext, and it's on pub.dev as `morphtext`. It works on morphnext's internals for now; we've asked upstream for a small public API so it can depend on morphnext properly.
+It's MIT, it lives at [morphtext.drei.gg](https://morphtext.drei.gg) (a playground you can type into) and [github.com/drei-gg/morphtext](https://github.com/drei-gg/morphtext), and it's on pub.dev as `morphtext`. It works on morphnext's internals for now; we've asked upstream for a small public API so it can depend on morphnext properly.
 
 ```callout
 Draft

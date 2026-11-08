@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:ui' as ui;
 
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -37,6 +36,14 @@ const assets = {
   600: 'packages/morphtext/fonts/Fraunces-600-normal.ttf',
 };
 
+/// Material Icons, from the Flutter SDK running the tests (the same file an
+/// app gets with `uses-material-design: true`).
+const iconsFamily = 'MaterialIcons';
+const iconsAsset = 'fonts/MaterialIcons-Regular.otf';
+String get _iconsFile =>
+    '${Platform.environment['FLUTTER_ROOT']}'
+    '/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf';
+
 /// The fonts' bytes, read once.
 final fontBytes = <String, ByteData>{};
 
@@ -57,6 +64,10 @@ Future<void> loadFonts() async {
   );
   fontBytes[sansAsset] = sansBytes;
   await (FontLoader(sansFamily)..addFont(Future.value(sansBytes))).load();
+
+  final iconBytes = ByteData.sublistView(await File(_iconsFile).readAsBytes());
+  fontBytes[iconsAsset] = iconBytes;
+  await (FontLoader(iconsFamily)..addFont(Future.value(iconBytes))).load();
 }
 
 /// An asset bundle with the fonts' manifest and files, as a built app has.
@@ -76,6 +87,12 @@ class TestFonts extends CachingAssetBundle {
           'family': sansFamily,
           'fonts': [
             {'asset': sansAsset, 'weight': 900},
+          ],
+        },
+        {
+          'family': iconsFamily,
+          'fonts': [
+            {'asset': iconsAsset},
           ],
         },
       ];
@@ -123,7 +140,7 @@ Future<(Size, List<int>)> pixels(WidgetTester tester) async {
   final boundary = tester.renderObject<RenderRepaintBoundary>(find.byKey(shot));
   return (await tester.runAsync(() async {
     final image = await boundary.toImage();
-    final data = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+    final data = await image.toByteData();
     final size = Size(image.width.toDouble(), image.height.toDouble());
     image.dispose();
     return (size, data!.buffer.asUint8List().toList());

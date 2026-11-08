@@ -1,18 +1,20 @@
 name: morphtext
 description: >-
-  Text that morphs between two styles letter by letter, outline into outline:
-  a light word turns bold, a small word grows, as one word. Built on
-  morphnext's outline engine.
+  Text that morphs letter by letter, outline into outline: a light word turns
+  bold, a serif turns sans, one word becomes another or flows into an icon.
+  Built on morphnext's outline engine.
 version: 0.1.0-dev.1
 # Draft: nothing is published until Drei says so.
 publish_to: none
-homepage: https://drei.gg/morphtext
+homepage: https://morphtext.drei.gg
+repository: https://github.com/drei-gg/morphtext
+issue_tracker: https://github.com/drei-gg/morphtext/issues
 topics:
-  - flutter
   - text
   - animation
   - morphing
   - typography
+  - icons
 
 environment:
   sdk: ">=3.9.0 <4.0.0"

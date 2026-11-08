@@ -21,7 +21,14 @@ void main() {
         final (textSize, text) = await pixels(tester);
 
         await tester.pumpWidget(
-          page(MorphText('Amethyst', from: light, to: bold, t: t)),
+          page(
+            MorphText(
+              'Amethyst',
+              from: light,
+              to: bold,
+              progress: AlwaysStoppedAnimation(t),
+            ),
+          ),
         );
         await settleFonts(tester);
         final (morphSize, morph) = await pixels(tester);
@@ -35,7 +42,14 @@ void main() {
       await tester.pumpWidget(page(Text('Amethyst', style: bold)));
       final (_, text) = await pixels(tester);
       await tester.pumpWidget(
-        page(MorphText('Amethyst', from: light, to: bold, t: .5)),
+        page(
+          MorphText(
+            'Amethyst',
+            from: light,
+            to: bold,
+            progress: AlwaysStoppedAnimation(.5),
+          ),
+        ),
       );
       await settleFonts(tester);
       final (_, morph) = await pixels(tester);
@@ -73,7 +87,14 @@ void main() {
 
     for (final t in [0.0, .25, .5, .75, 1.0]) {
       await tester.pumpWidget(
-        page(MorphText('Amethyst', from: light, to: big, t: t)),
+        page(
+          MorphText(
+            'Amethyst',
+            from: light,
+            to: big,
+            progress: AlwaysStoppedAnimation(t),
+          ),
+        ),
       );
       await settleFonts(tester);
       final box = find.byType(MorphText);
@@ -85,7 +106,14 @@ void main() {
     await tester.pumpWidget(page(Text('Amethyst', style: big)));
     final large = tester.getSize(find.byType(Text));
     await tester.pumpWidget(
-      page(MorphText('Amethyst', from: light, to: big, t: .5)),
+      page(
+        MorphText(
+          'Amethyst',
+          from: light,
+          to: big,
+          progress: AlwaysStoppedAnimation(.5),
+        ),
+      ),
     );
     expect(tester.getSize(find.byType(MorphText)), Size.lerp(small, large, .5));
   });
@@ -98,7 +126,7 @@ void main() {
           'Amethyst',
           from: nowhere,
           to: nowhere.copyWith(fontWeight: FontWeight.w700),
-          t: .5,
+          progress: AlwaysStoppedAnimation(.5),
         ),
       ),
     );
@@ -117,7 +145,7 @@ void main() {
             'Amethyst',
             from: TextStyle(),
             to: TextStyle(fontWeight: FontWeight.w600),
-            t: .5,
+            progress: AlwaysStoppedAnimation(.5),
           ),
         ),
       ),
@@ -125,7 +153,14 @@ void main() {
     await settleFonts(tester);
     final (_, inherited) = await pixels(tester);
     await tester.pumpWidget(
-      page(MorphText('Amethyst', from: light, to: bold, t: .5)),
+      page(
+        MorphText(
+          'Amethyst',
+          from: light,
+          to: bold,
+          progress: AlwaysStoppedAnimation(.5),
+        ),
+      ),
     );
     await settleFonts(tester);
     final (_, explicit) = await pixels(tester);
@@ -135,7 +170,14 @@ void main() {
   testWidgets('it reads as the word', (tester) async {
     final semantics = tester.ensureSemantics();
     await tester.pumpWidget(
-      page(MorphText('Amethyst', from: light, to: bold, t: .5)),
+      page(
+        MorphText(
+          'Amethyst',
+          from: light,
+          to: bold,
+          progress: AlwaysStoppedAnimation(.5),
+        ),
+      ),
     );
     expect(find.bySemanticsLabel('Amethyst'), findsOneWidget);
     semantics.dispose();

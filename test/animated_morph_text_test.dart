@@ -8,7 +8,7 @@ void main() {
   setUpAll(loadFonts);
 
   double t(WidgetTester tester) =>
-      tester.widget<MorphText>(find.byType(MorphText)).t;
+      tester.widget<MorphText>(find.byType(MorphText)).progress.value;
 
   testWidgets('a new style morphs in, then settles as plain text', (
     tester,
@@ -47,7 +47,8 @@ void main() {
     final morph = tester.widget<MorphText>(find.byType(MorphText));
     expect(morph.from, bold);
     expect(morph.to, light);
-    expect(morph.t, closeTo(1 - mid, 1e-9));
+    // To within Cubic.transform's own precision.
+    expect(morph.progress.value, closeTo(1 - mid, 1e-3));
 
     await tester.pumpAndSettle();
     expect(t(tester), 1);
@@ -62,6 +63,6 @@ void main() {
     await tester.pumpWidget(at(light));
     await tester.pumpWidget(at(bold));
     final morph = tester.widget<MorphText>(find.byType(MorphText));
-    expect((morph.from, morph.to, morph.t), (bold, bold, 1));
+    expect((morph.from, morph.to, morph.progress.value), (bold, bold, 1));
   });
 }

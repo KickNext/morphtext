@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:morphtext/morphtext.dart';
 import 'package:morphtext/src/align.dart';
 import 'package:morphtext/src/engine.dart';
+import 'package:morphtext/src/morph_run.dart' show MorphMotion;
 
 import 'support.dart';
 
@@ -94,7 +95,13 @@ void main() {
     testWidgets('the ends are the two words as plain text', (tester) async {
       final start = await shoot(
         tester,
-        MorphText('Amethyst', toText: 'Citrine', from: light, to: bold, t: 0),
+        MorphText(
+          'Amethyst',
+          toText: 'Citrine',
+          from: light,
+          to: bold,
+          progress: AlwaysStoppedAnimation(0),
+        ),
       );
       expect(
         differing(
@@ -105,7 +112,13 @@ void main() {
       );
       final end = await shoot(
         tester,
-        MorphText('Amethyst', toText: 'Citrine', from: light, to: bold, t: 1),
+        MorphText(
+          'Amethyst',
+          toText: 'Citrine',
+          from: light,
+          to: bold,
+          progress: AlwaysStoppedAnimation(1),
+        ),
       );
       expect(
         differing(end, await shoot(tester, Text('Citrine', style: bold))),
@@ -119,7 +132,7 @@ void main() {
         toText: 'Amber',
         from: light,
         to: sans,
-        t: .5,
+        progress: AlwaysStoppedAnimation(.5),
       );
       final mid = await shoot(tester, widget);
       // The same widget with its fonts withheld draws plain text instead.
@@ -136,7 +149,13 @@ void main() {
       for (final (t, word) in [(.3, 'Amethyst'), (.7, 'Amber')]) {
         await tester.pumpWidget(
           page(
-            MorphText('Amethyst', toText: 'Amber', from: light, to: bold, t: t),
+            MorphText(
+              'Amethyst',
+              toText: 'Amber',
+              from: light,
+              to: bold,
+              progress: AlwaysStoppedAnimation(t),
+            ),
           ),
         );
         expect(find.bySemanticsLabel(word), findsOneWidget);
@@ -154,7 +173,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 40));
       final morph = tester.widget<MorphText>(find.byType(MorphText));
       expect((morph.text, morph.toText), ('Amethyst', 'Citrine'));
-      expect(morph.t, inExclusiveRange(0, 1));
+      expect(morph.progress.value, inExclusiveRange(0, 1));
 
       await tester.pumpAndSettle();
       expect(ends, 1);
@@ -166,6 +185,190 @@ void main() {
         ),
         0,
       );
+    });
+  });
+
+  group('springs', () {
+    testWidgets('a spring hands over to plain text once, and stays there', (
+      tester,
+    ) async {
+      // Bold to light: the spring overshoots and rings around the end. Were
+      // it to draw plain text whenever t >= 1, it would swap between text
+      // and outline as it rings, and thin strokes would shimmer.
+      final settled = await shoot(tester, const Text('Amethyst', style: light));
+      Widget at(TextStyle style) => page(
+        // The default spring, MorphSprings.snappy, overshoots.
+        AnimatedMorphText('Amethyst', style: style),
+      );
+      await tester.pumpWidget(at(bold));
+      await settleFonts(tester);
+      await tester.pumpWidget(at(light));
+      final asText = <bool>[];
+      var overshot = false;
+      for (var k = 0; k < 90; k++) {
+        await tester.pump(const Duration(milliseconds: 16));
+        final t = tester
+            .widget<MorphText>(find.byType(MorphText))
+            .progress
+            .value;
+        overshot |= t > 1;
+        final (_, frame) = await pixels(tester);
+        // Mid-morph the box is between the two words' sizes.
+        asText.add(
+          frame.length == settled.length && differing(frame, settled) == 0,
+        );
+        if (!tester.hasRunningAnimations) break;
+      }
+      expect(overshot, isTrue, reason: 'snappy overshoots');
+      expect(asText.last, isTrue, reason: 'it lands on plain text');
+      // Once it reads as the plain text it stays so: no flipping back to
+      // outlines as the spring rings (the text fades in as motion dies, so
+      // the last frames in flight may already match it).
+      final first = asText.indexOf(true);
+      expect(
+        asText.sublist(first).every((x) => x),
+        isTrue,
+        reason: 'no flip back to outlines: $asText',
+      );
+      expect(first, greaterThan(0), reason: 'outlines first: $asText');
+    });
+
+    testWidgets('by default it springs like morphnext and settles promptly', (
+      tester,
+    ) async {
+      Widget at(TextStyle style) =>
+          page(AnimatedMorphText('Amethyst', style: style));
+      await tester.pumpWidget(at(bold));
+      await settleFonts(tester);
+      await tester.pumpWidget(at(light));
+      final ts = <double>[];
+      var elapsed = Duration.zero;
+      while (tester.hasRunningAnimations) {
+        await tester.pump(const Duration(milliseconds: 16));
+        elapsed += const Duration(milliseconds: 16);
+        ts.add(tester.widget<MorphText>(find.byType(MorphText)).progress.value);
+      }
+      // snappy's attack: past half the morph within the first 100 ms.
+      expect(ts[5], greaterThan(.5));
+      // Its little overshoot, then exactly the end once it's within half a
+      // pixel (no creeping tail).
+      expect(ts.reduce(max), greaterThan(1));
+      expect(ts.last, 1);
+      expect(elapsed, lessThan(const Duration(milliseconds: 600)));
+    });
+
+    testWidgets('the text fades in while the word still moves', (tester) async {
+      // Frames in the last of the motion are neither outline nor text, and
+      // the first frame at rest is the plain text: nothing changes after.
+      final settled = await shoot(tester, const Text('Amethyst', style: light));
+      Widget at(TextStyle style) =>
+          page(AnimatedMorphText('Amethyst', style: style));
+      await tester.pumpWidget(at(bold));
+      await settleFonts(tester);
+      await tester.pumpWidget(at(light));
+      final gaps = <int>[];
+      while (tester.hasRunningAnimations) {
+        await tester.pump(const Duration(milliseconds: 8));
+        final (_, frame) = await pixels(tester);
+        gaps.add(
+          frame.length == settled.length ? differing(frame, settled) : -1,
+        );
+      }
+      // Converging on the text: the last frames in flight are already
+      // close, and it ends exactly on it.
+      expect(gaps.last, 0);
+      final inFlight = gaps.sublist(0, gaps.length - 1).where((g) => g >= 0);
+      expect(inFlight.last, lessThan(inFlight.first), reason: '$gaps');
+    });
+
+    testWidgets('a curve is optional, and ends on time', (tester) async {
+      Widget at(TextStyle style) => page(
+        AnimatedMorphText(
+          'Amethyst',
+          style: style,
+          curve: Curves.easeOutCubic,
+          duration: const Duration(milliseconds: 300),
+        ),
+      );
+      await tester.pumpWidget(at(bold));
+      await settleFonts(tester);
+      await tester.pumpWidget(at(light));
+      var maxT = 0.0;
+      var elapsed = Duration.zero;
+      while (tester.hasRunningAnimations) {
+        await tester.pump(const Duration(milliseconds: 16));
+        elapsed += const Duration(milliseconds: 16);
+        maxT = max(
+          maxT,
+          tester.widget<MorphText>(find.byType(MorphText)).progress.value,
+        );
+      }
+      expect(maxT, lessThanOrEqualTo(1));
+      expect(elapsed, lessThanOrEqualTo(const Duration(milliseconds: 320)));
+      expect(
+        tester.widget<MorphText>(find.byType(MorphText)).progress.value,
+        1,
+      );
+    });
+  });
+
+  group('handoff', () {
+    testWidgets('AnimatedMorphText fades text in by default; 0 turns it off', (
+      tester,
+    ) async {
+      Future<List<double?>> run(double? handoff) async {
+        Widget at(TextStyle style) => page(
+          handoff == null
+              ? AnimatedMorphText('Amethyst', style: style)
+              : AnimatedMorphText('Amethyst', style: style, handoff: handoff),
+        );
+        await tester.pumpWidget(at(bold));
+        await settleFonts(tester);
+        await tester.pumpWidget(at(light));
+        final seen = <double?>[];
+        while (tester.hasRunningAnimations) {
+          await tester.pump(const Duration(milliseconds: 16));
+          seen.add(
+            tester.widget<MorphMotion>(find.byType(MorphMotion)).handoff,
+          );
+        }
+        await tester.pumpWidget(const SizedBox());
+        return seen;
+      }
+
+      expect((await run(null)).whereType<double>(), isNotEmpty);
+      expect((await run(0)).whereType<double>(), isEmpty);
+      // A wider window starts the fade earlier.
+      final wide = await run(.3), narrow = await run(.05);
+      expect(
+        wide.indexWhere((h) => h != null),
+        lessThan(narrow.indexWhere((h) => h != null)),
+      );
+    });
+
+    testWidgets('MorphText is exact by default; handoff opts into the fade', (
+      tester,
+    ) async {
+      Widget at(double t, double handoff) => MorphText(
+        'Amethyst',
+        from: bold,
+        to: light,
+        progress: AlwaysStoppedAnimation(t),
+        handoff: handoff,
+      );
+      final exact = await shoot(tester, at(.97, 0));
+      final faded = await shoot(tester, at(.97, .1));
+      expect(differing(exact, faded), greaterThan(0));
+      // Outside the window, and at the end, the two agree.
+      expect(
+        differing(
+          await shoot(tester, at(.8, 0)),
+          await shoot(tester, at(.8, .1)),
+        ),
+        0,
+      );
+      final text = await shoot(tester, const Text('Amethyst', style: light));
+      expect(differing(await shoot(tester, at(1, .1)), text), 0);
     });
   });
 
@@ -189,7 +392,12 @@ void main() {
     testWidgets('the ends are each font as plain text', (tester) async {
       final start = await shoot(
         tester,
-        const MorphText('Amethyst', from: light, to: sans, t: 0),
+        const MorphText(
+          'Amethyst',
+          from: light,
+          to: sans,
+          progress: AlwaysStoppedAnimation(0),
+        ),
       );
       expect(
         differing(
@@ -200,7 +408,12 @@ void main() {
       );
       final end = await shoot(
         tester,
-        const MorphText('Amethyst', from: light, to: sans, t: 1),
+        const MorphText(
+          'Amethyst',
+          from: light,
+          to: sans,
+          progress: AlwaysStoppedAnimation(1),
+        ),
       );
       expect(
         differing(
@@ -219,7 +432,7 @@ void main() {
             toText: 'Quartz',
             from: light,
             to: sans,
-            t: .5,
+            progress: AlwaysStoppedAnimation(.5),
           ),
         ),
       );
@@ -232,7 +445,7 @@ void main() {
           toText: 'Quartz',
           from: light,
           to: sans,
-          t: 1,
+          progress: AlwaysStoppedAnimation(1),
         ),
       );
       expect(

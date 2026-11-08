@@ -1,15 +1,14 @@
 // ignore_for_file: implementation_imports
 //
 // The seam to morphnext (KickNext, MIT, github.com/KickNext/morphnext): the
-// only file in morphtext that touches its outline engine. Everything here
-// rests on morphnext 0.6.1's *internals* (src/font, src/geometry), not its
-// public widgets, which is why pubspec.yaml pins it exactly.
+// only file in morphtext that touches its outline engine. It rests on
+// morphnext 0.6.1's internals (src/font, src/geometry), not its public
+// widgets, which is why pubspec.yaml pins that version exactly.
 //
-// The surface below is deliberately the small public API proposed upstream
+// The surface below is the small public API proposed upstream
 // (upstream/ISSUE.md): read a glyph's outline from font bytes by code point,
-// and build a plan between two outlines. If morphnext adopts it, this file
-// becomes upstream/engine_public_api.dart; if not, the local `vendored`
-// branch swaps these imports for a copy under lib/src/third_party/morphnext.
+// and plan a morph between two outlines. Once morphnext ships it, this file
+// becomes upstream/engine_public_api.dart and the pin becomes a range.
 
 import 'dart:typed_data';
 

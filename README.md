@@ -1,6 +1,8 @@
 # morphtext
 
-**Text that morphs letter by letter, outline into outline.**
+**Text that morphs letter by letter, outline into outline, and into icons.**
+
+**[Try it in the browser →](https://morphtext.drei.gg)**
 
 A light word turns bold, a serif word turns sans, a small word grows, one
 word becomes another, and it stays one word the whole way: no crossfade
@@ -8,7 +10,7 @@ between two copies, no ghosted double name in the middle. Each letter's real
 outline is read from your bundled fonts and morphed into its counterpart, and
 at either end it is plain text, pixel for pixel what a `Text` draws.
 
-![Words and letters morphing: Amethyst going light to bold, small to large and serif to sans; a giant a becoming g, R, & and Q beside a phrase becoming each next word; a blue Quartz counting its weight from 300 to 600; and a grid of stone names becoming other stones in other faces](doc/demo.webp)
+![Text and icons morphing: MORPH becoming ANY, then TEXT OR ICON, each word turning into its own icon; a giant letter changing beside Any letter, Any weight, Any font style, Any text; one word going Light, Bold, Sans and Script; a blue Quartz swinging from Light to Black, its weight counting 300 to 900; buttons whose labels become a tick and a cross, and words becoming their icons; a dark circle bursting into a grid where stones and icons keep morphing; and the morphtext wordmark with flutter pub add morphtext](doc/demo.webp)
 
 morphtext is a companion to [morphnext](https://github.com/KickNext/morphnext)
 by KickNext, which morphs icon glyphs read from icon fonts. morphnext is the
@@ -25,6 +27,7 @@ to the other, and handing back to plain text at the ends.
 | Weight, size, colour, slant | Two `TextStyle`s in one family |
 | One font into another | Two `TextStyle`s in different families (serif → sans, any bundled pair) |
 | One word into another | `toText`, or a new `text` on `AnimatedMorphText` |
+| A word into an icon, an icon into another | `MorphContent.icon` on `AnimatedMorph` or `MorphBetween` |
 | All of it at once | Any combination of the above |
 
 ## Why
@@ -66,7 +69,7 @@ flutter:
 
 ## Implicit morph
 
-Change `text`, `style` or both; `AnimatedMorphText` springs from what's on
+Change `text`, `style` or both; `AnimatedMorphText` morphs from what's on
 screen to the new word in the new style. Turning back mid-flight reverses
 from where the word is.
 
@@ -85,29 +88,48 @@ GestureDetector(
 )
 ```
 
-It uses morphnext's `MorphSprings.snappy` by default; pass `MorphSprings.smooth`
-or any `SpringDescription` as `spring`. `onEnd` fires when a transition
-settles. With `MediaQuery.disableAnimations`, changes apply at once.
+Each morph is driven by a spring, as morphnext's `AnimatedMorphIcon` is, and
+by the same default: `MorphSprings.snappy` (re-exported), which moves at once
+and overshoots a touch. Pass `MorphSprings.smooth` for no overshoot, or any
+`SpringDescription`. A spring keeps its velocity when you turn back
+mid-flight. For a fixed duration instead, pass a `curve` (and a `duration`,
+350 ms by default), as Flutter's implicit animations run. `onEnd` fires when
+a morph ends. With `MediaQuery.disableAnimations`, changes apply at once.
+
+At rest the word is plain text, pixel for pixel a `Text`. Hinted text never
+quite matches its own outline (on the web, light text renders a little
+thinner, its baseline snapped to the pixel), so the text fades in over the
+outlines in the last part of the morph, while the word is still moving, and
+nothing changes once it has landed. `handoff` sets how much of the morph's
+end that fade spans: 0.1 (the last tenth) by default, chosen by eye on the
+web, where the difference is largest; 0 swaps at the end.
 
 ## Controlled morph
 
-Drive `t` yourself (a page position, a scroll offset, a gesture, an
-`AnimationController` in an `AnimatedBuilder`). It is clamped to 0–1.
+Drive `progress` yourself, as morphnext's `MorphIcon` takes it: an
+`Animation<double>`, clamped to 0–1. An `AnimationController` through a
+`CurvedAnimation` gives any curve; `AlwaysStoppedAnimation(value)` pins it to
+a page position, a scroll offset or a gesture.
 
 ```dart
+final controller = AnimationController(
+  vsync: this,
+  duration: const Duration(milliseconds: 900),
+);
+
 MorphText(
   'Rose Quartz',
   from: serif.copyWith(fontSize: 22),
   to: serif.copyWith(fontSize: 48),
-  t: progress,
+  progress: CurvedAnimation(parent: controller, curve: Curves.easeInOutCubic),
 )
 
 MorphText(
   'Amethyst',
-  toText: 'Citrine',   // optional: another word at t = 1
+  toText: 'Citrine',   // optional: another word at progress 1
   from: serif,
   to: sans,
-  t: progress,
+  progress: AlwaysStoppedAnimation(scrollFraction),
 )
 ```
 
@@ -116,6 +138,42 @@ Fonts from a package are named the Flutter way:
 `TextStyle(fontFamily: 'Fraunces', package: 'my_fonts')`. Don't write the
 `packages/my_fonts/Fraunces` string yourself: merging with the default style
 would prefix it twice.
+
+A controlled morph is exact by default: outlines until `progress` is 1, then
+plain text. Pass `handoff` (as on `AnimatedMorphText`) to fade the text in over
+the end instead, when you play it along a curve rather than hand it to a
+`Text` at a precise frame.
+
+## Icons
+
+Flutter draws an icon as one character of an icon font, so morphtext reads
+it the same way it reads a letter. `MorphContent` holds either end, text or
+icon, and `AnimatedMorph` and `MorphBetween` morph between any two:
+
+```dart
+const send = MorphContent.text('Send', style: label);
+const sent = MorphContent.icon(Icons.check_rounded, semanticsLabel: 'Sent');
+
+AnimatedMorph(done ? sent : send)   // the label flows into a tick
+
+MorphBetween(
+  from: const MorphContent.icon(Icons.menu_rounded),
+  to: const MorphContent.icon(Icons.close_rounded),
+  progress: controller,
+)
+```
+
+Any icon font the app bundles works: Material Icons
+(`uses-material-design: true`), Cupertino Icons, morphnext's Morphicons, your
+own. An icon's size and colour default to the ambient `IconTheme`, and at
+either end it is pixel for pixel an `Icon`. When a word meets an icon, every
+letter flows into it (or out of it) and they meet as one shape.
+
+As with `Icon`, release builds keep only the icons your code names as
+constants (`--tree-shake-icons`), so name each one (`Icons.check`), not a
+code point computed at runtime.
+
+`AnimatedMorphText` and `MorphText` remain the shorthand for text only.
 
 ## Which letter becomes which
 
@@ -142,7 +200,7 @@ single-storey one), the extra contour shrinks to a point.
    once by morphnext's OpenType reader (TrueType or CFF outlines). Each
    letter's outline is sampled into contours.
 3. Letters are paired (above), and morphnext plans each pair's morph.
-4. Each frame, every pair's outline is interpolated to `t` and drawn into its
+4. Each frame, every pair's outline is interpolated to the progress and drawn into its
    em square, carried from its place in the first layout to its place in the
    second.
 5. At `t = 0` and `t = 1` it draws the text with `TextPainter` instead, so
@@ -158,13 +216,13 @@ and letter plans are shared by every `MorphText` on the bundle.
   Fonts loaded at runtime (`FontLoader`, google_fonts downloads) or system
   fonts aren't in `FontManifest.json`. Then `MorphText` draws plain text and
   switches at the middle (a debug build says why, once).
-- **Plain-text ends.** Only `t` strictly between 0 and 1 draws outlines. The
+- **Plain-text ends.** Only progress strictly between 0 and 1 draws outlines. The
   outline is filled geometry, without hinting, so on small low-DPI text the
   first frame of a morph can look a hair softer than the text at rest.
 - **In-between shapes of different letters are abstract.** Weight, size and
   font morphs keep each letter recognisable; one letter morphing into
   another (`y` into `i`) passes through shapes that are neither, as
-  morphnext's icons do. At spring speed it reads as motion.
+  morphnext's icons do. At animation speed it reads as motion.
 - **One line, one direction, no shaping.** Letters morph code point by code
   point at the positions Flutter laid out, so scripts that shape glyphs
   contextually (Arabic, Indic) and ligatures don't morph faithfully. If your
@@ -192,14 +250,19 @@ and letter plans are shared by every `MorphText` on the bundle.
 
 ## Example
 
-`example/` is a small app: tap the word for the next stone, switch it
-between light, bold and a sans, and slide to grow another word.
+`example/` is the playground at [morphtext.drei.gg](https://morphtext.drei.gg):
+type a word and switch its face, size, colour and motion (morphnext's springs
+or a curve, with the line of code each one is); press buttons whose labels
+flow into a tick, or into a cross when the upload fails; flip words into their icons and back; drive `MorphText`
+by hand or play it along a curve.
+`flutter run -d chrome` in `example/` runs it locally.
 
 The hero above follows the shape of morphnext's own, so the two read as a
 pair. It is rendered frame by frame in a widget test
 (`tool/record_demo_test.dart`, 1280x720 at 60 fps) and encoded by
-`tool/record_demo.sh`. `tool/morph_strip_test.dart` renders word-to-word and
-font-to-font morphs side by side for a quick look.
+`tool/record_demo.sh`. `tool/morph_strip_test.dart` and
+`tool/icon_strip_test.dart` render word, font and icon morphs side by side
+for a quick look.
 
 ## License and attribution
 

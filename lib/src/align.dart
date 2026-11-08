@@ -57,3 +57,20 @@ List<(int?, int?)> alignLetters(List<int> a, List<int> b) {
 bool _isSpace(int rune) => String.fromCharCode(rune).trim().isEmpty;
 
 double _min(double x, double y) => x < y ? x : y;
+
+/// Every letter of a word paired with the single glyph at the other end (an
+/// icon, say), so the whole word flows into it, or out of it. Spaces pair
+/// with nothing. When neither end is a single glyph, or both are, it is
+/// [alignLetters].
+List<(int?, int?)> convergeLetters(List<int> a, List<int> b) {
+  if ((a.length == 1) == (b.length == 1)) return alignLetters(a, b);
+  final one = a.length == 1;
+  final many = one ? b : a;
+  return [
+    for (var k = 0; k < many.length; k++)
+      if (_isSpace(many[k]))
+        one ? (null, k) : (k, null)
+      else
+        one ? (0, k) : (k, 0),
+  ];
+}

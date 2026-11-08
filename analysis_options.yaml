@@ -1,13 +1,32 @@
+include: package:flutter_lints/flutter.yaml
+
 analyzer:
   exclude:
     - build/**
     # Written for the morphnext API proposed in upstream/; it compiles only
     # against the patched morphnext.
     - upstream/**
-include: package:flutter_lints/flutter.yaml
+  language:
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
 
 linter:
   rules:
-    - public_member_api_docs
+    - always_declare_return_types
+    - avoid_dynamic_calls
+    - avoid_positional_boolean_parameters
+    - avoid_redundant_argument_values
+    - avoid_void_async
+    - comment_references
+    - directives_ordering
     - prefer_final_locals
+    - prefer_single_quotes
+    - public_member_api_docs
     - sort_constructors_first
+    - type_annotate_public_apis
+    - unawaited_futures
+    - unnecessary_lambdas
+    - unnecessary_parenthesis
+    - use_named_constants
+    - use_super_parameters

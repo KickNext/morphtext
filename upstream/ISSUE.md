@@ -12,7 +12,7 @@ lovely work, and they turn out to be useful beyond icons.
 
 ### What I built on it
 
-[morphtext](https://drei.gg/morphtext) morphs *text* letter by letter: a light
+[morphtext](https://morphtext.drei.gg) morphs *text* letter by letter: a light
 word turns bold, a serif word turns sans, one word becomes another, and it
 stays one word the whole way instead of crossfading between two copies. It came out of an
 app where a stone's name flies from a light title to a card's bold title; the
@@ -22,6 +22,12 @@ Flutter lays out both ends; for each letter, morphnext reads the outline from
 the bundled font file and plans the morph between the two glyphs (the same
 letter in two fonts or weights, or two different letters). At the ends it
 draws plain text. (Demo: <link to demo.webp>)
+
+It also morphs words and icons into each other (a "Send" label flowing into
+a tick, `Icons.menu` into `Icons.close`), reading icon glyphs from the same
+icon fonts morphnext's own widgets read, through the same planner. Your
+engine turns out to be a general glyph morpher, and the API below is all it
+takes to use it that way.
 
 It credits morphnext as the engine, and I'd like it to depend on morphnext
 properly rather than copy it.
