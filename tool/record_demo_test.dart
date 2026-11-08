@@ -66,9 +66,28 @@ Widget morph(String text, double size, double t, {Color? color}) => MorphText(
   t: t,
 );
 
-/// Act 1: one word, light to bold and back.
-Widget opening(double s) =>
-    Center(child: morph('Amethyst', 132, flips(s, [0.5, 1.8, 3.0])));
+/// Act 1: one word around the corners of weight and size: light to bold,
+/// small to large, bold to light, large to small.
+Widget opening(double s) {
+  final corners = [
+    face(96),
+    face(96, weight: FontWeight.w600),
+    face(150, weight: FontWeight.w600),
+    face(150),
+    face(96),
+  ];
+  const at = [0.4, 1.3, 2.2, 3.1];
+  var k = 0;
+  while (k < at.length && s >= at[k]) {
+    k++;
+  }
+  // Morphing from corner k-1 to k since at[k-1]; before the first, at rest.
+  final from = corners[k == 0 ? 0 : k - 1], to = corners[k];
+  final t = k == 0 ? 0.0 : spring(s - at[k - 1]);
+  return Center(
+    child: MorphText('Amethyst', from: from, to: to, t: t),
+  );
+}
 
 /// Act 2: a giant letter beside a phrase arriving word by word.
 Widget specimen(double s) {

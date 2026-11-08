@@ -8,7 +8,7 @@ Each letter's real outline in each style is read from your bundled font and
 morphed into the other, and at either end it is plain text, pixel for pixel
 what a `Text` draws.
 
-![Fraunces words and letters morphing from light to bold: Amethyst, a giant a, g, R and &, a blue Quartz with its weight counting from 300 to 600, and a grid of stone names in a wave](doc/demo.webp)
+![Fraunces words and letters morphing: Amethyst going light to bold and small to large, a giant a, g, R and &, a blue Quartz with its weight counting from 300 to 600, and a grid of stone names in a wave](doc/demo.webp)
 
 morphtext is a companion to [morphnext](https://github.com/KickNext/morphnext)
 by KickNext, which morphs icon glyphs read from icon fonts. morphnext is the
