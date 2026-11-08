@@ -1,9 +1,8 @@
 name: morphtext
 description: >-
-  Text that morphs letter by letter, outline into outline: a light word turns
-  bold, a serif turns sans, one word becomes another or flows into an icon.
-  Built on morphnext's outline engine.
-version: 0.1.0
+  Text that morphs letter by letter, outline into outline: weight, size, font,
+  one word into another, or into an icon. Built on morphnext's outline engine.
+version: 0.1.1
 homepage: https://morphtext.drei.gg
 repository: https://github.com/drei-gg/morphtext
 issue_tracker: https://github.com/drei-gg/morphtext/issues
