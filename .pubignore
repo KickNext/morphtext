@@ -1,11 +1,24 @@
-# Drafts that stay in the repo but not in the published package.
-doc/drei-gg/
-doc/frames/
-upstream/
-# (.pubignore replaces .gitignore for pub, so repeat what matters.)
+# What pub leaves out of the package. With this file present, pub ignores
+# .gitignore here, so its rules are repeated first.
+
+# From .gitignore:
 .dart_tool/
+.packages
 build/
 pubspec.lock
-example/build/
-example/.dart_tool/
-doc/demo.gif
+.flutter-plugins
+.flutter-plugins-dependencies
+*.iml
+.idea/
+doc/frames/
+test/failures/
+
+# Not needed to use the package (all on GitHub):
+# the reels and their media (the README links them on GitHub),
+doc/
+# the reel recorder and its fonts,
+tool/
+# the upstream API proposal for morphnext,
+upstream/
+# and CI.
+.github/

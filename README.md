@@ -10,7 +10,7 @@ between two copies, no ghosted double name in the middle. Each letter's real
 outline is read from your bundled fonts and morphed into its counterpart, and
 at either end it is plain text, pixel for pixel what a `Text` draws.
 
-![Text and icons morphing: MORPH becoming ANY, then TEXT OR ICON, each word turning into its own icon; a giant letter changing beside Any letter, Any weight, Any font style, Any text; one word going Light, Bold, Sans and Script; a blue Quartz swinging from Light to Black, its weight counting 300 to 900; buttons whose labels become a tick and a cross, and words becoming their icons; a dark circle bursting into a grid where stones and icons keep morphing; and the morphtext wordmark with flutter pub add morphtext](doc/demo.webp)
+![Text and icons morphing: MORPH becoming ANY, then TEXT OR ICON, each word turning into its own icon; a giant letter changing beside Any letter, Any weight, Any font style, Any text; one word going Light, Bold, Sans and Script; a blue Quartz swinging from Light to Black, its weight counting 300 to 900; buttons whose labels become a tick and a cross, and words becoming their icons; a dark circle bursting into a grid where stones and icons keep morphing; and the morphtext wordmark with flutter pub add morphtext](https://raw.githubusercontent.com/drei-gg/morphtext/main/doc/demo.webp)
 
 morphtext is a companion to [morphnext](https://github.com/KickNext/morphnext)
 by KickNext, which morphs icon glyphs read from icon fonts. morphnext is the
@@ -263,6 +263,18 @@ pair. It is rendered frame by frame in a widget test
 `tool/record_demo.sh`. `tool/morph_strip_test.dart` and
 `tool/icon_strip_test.dart` render word, font and icon morphs side by side
 for a quick look.
+
+## Reels
+
+The hero above, as a video: [demo.mp4](https://github.com/drei-gg/morphtext/blob/main/doc/reels/demo.mp4).
+
+And a nod to a certain anthology's title card, which people thought of when
+morphnext launched:
+
+![LOVE, DEATH and ANDROID flowing into a heart, a cross and the Android robot, glitching through variants, and settling on LOVE DEATH MORPHS](https://raw.githubusercontent.com/drei-gg/morphtext/main/doc/reels/ldr.webp)
+
+[ldr.mp4](https://github.com/drei-gg/morphtext/blob/main/doc/reels/ldr.mp4). Both
+are rendered frame by frame in widget tests: `tool/record_demo.sh demo|ldr`.
 
 ## License and attribution
 

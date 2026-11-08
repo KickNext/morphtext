@@ -3,19 +3,20 @@
 # encodes it.
 #
 #   tool/record_demo.sh demo   # the README hero: doc/demo.webp and doc/demo.gif
-#   tool/record_demo.sh ldr    # the nod: build/reels/ldr.webp and .gif
+#   tool/record_demo.sh ldr    # the nod: doc/reels/ldr.webp and .gif
 #
-# Both also get an H.264 MP4 in build/reels/ for posting.
+# Both also get an H.264 MP4 in doc/reels/ for posting. None of doc/ ships
+# in the pub package (.pubignore).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 reel="${1:-demo}"
 case "$reel" in
   demo) test=tool/record_demo_test.dart frames=doc/frames out=doc ;;
-  ldr) test=tool/record_ldr_test.dart frames=build/ldr_frames out=build/reels ;;
+  ldr) test=tool/record_ldr_test.dart frames=build/ldr_frames out=doc/reels ;;
   *) echo "usage: $0 [demo|ldr]" >&2; exit 64 ;;
 esac
-mkdir -p "$out" build/reels
+mkdir -p "$out" doc/reels
 
 flutter test "$test"
 ffmpeg -hide_banner -loglevel error -y -framerate 60 -i "$frames/frame_%04d.png" \
@@ -26,5 +27,5 @@ ffmpeg -hide_banner -loglevel error -y -framerate 60 -i "$frames/frame_%04d.png"
   -loop 0 "$out/$reel.gif"
 ffmpeg -hide_banner -loglevel error -y -framerate 60 -i "$frames/frame_%04d.png" \
   -c:v libx264 -pix_fmt yuv420p -crf 18 -preset slow -movflags +faststart \
-  "build/reels/$reel.mp4"
-ls -la "$out/$reel.webp" "$out/$reel.gif" "build/reels/$reel.mp4"
+  "doc/reels/$reel.mp4"
+ls -la "$out/$reel.webp" "$out/$reel.gif" "doc/reels/$reel.mp4"
