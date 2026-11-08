@@ -1,11 +1,11 @@
 {
-    "name": "morphtext_example",
-    "short_name": "morphtext_example",
+    "name": "morphtext",
+    "short_name": "morphtext",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#f8faf9",
+    "theme_color": "#f8faf9",
+    "description": "Text that morphs letter by letter, outline into outline, in Flutter.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
