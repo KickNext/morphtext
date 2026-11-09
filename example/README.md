@@ -12,10 +12,14 @@ app. For the short version, see [example.md](example.md).
 - **MorphText:** a morph driven by an `AnimationController` through a chosen
   curve, played or scrubbed.
 
+And a second app, **Records** (`lib/records.dart`): MorphText in a Hero. Tap an
+album and its title morphs from the list's style to the page's as it flies;
+the record slides out of its sleeve. `flutter run -t lib/records_main.dart`.
+
 ```bash
 flutter run -d chrome   # or any device
 ```
 
 Fonts: Fraunces (SIL OFL 1.1, `fonts/Fraunces-OFL.txt`; static Light and
-SemiBold instances, Latin-1 subset) and Red Hat Display Black (SIL OFL 1.1,
+SemiBold instances, Latin-1 subset) and Red Hat Display Light and Black (SIL OFL 1.1,
 `fonts/RedHatDisplay-OFL.txt`, unmodified). Icons: Material Icons.

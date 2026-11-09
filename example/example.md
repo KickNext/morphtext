@@ -141,6 +141,25 @@ class _DemoState extends State<Demo> with SingleTickerProviderStateMixin {
 - **Icons:** `MorphContent.icon` takes any `IconData` from a bundled icon
   font; its size and colour default to the ambient `IconTheme`.
 
+## In a Hero
+
+A Hero's `flightShuttleBuilder` hands MorphText the flight; wrap it in a
+transparent `Material`, since the flight happens outside your `Scaffold`:
+
+```dart
+Hero(
+  tag: 'title-$id',
+  flightShuttleBuilder: (context, animation, direction, from, to) => Material(
+    type: MaterialType.transparency,
+    child: MorphText(title, from: listStyle, to: pageStyle, progress: animation),
+  ),
+  child: Text(title, style: onPage ? pageStyle : listStyle),
+)
+```
+
+The whole thing, a record library whose titles morph as they fly, is
+`lib/records.dart` (`flutter run -t lib/records_main.dart`).
+
 ## The playground
 
 `lib/main.dart` is the full playground at

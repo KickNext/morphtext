@@ -23,8 +23,8 @@ flutter:
   uses-material-design: true
   # MorphText reads each letter's outline from the bundled files.
   # Fraunces (SIL OFL 1.1, fonts/Fraunces-OFL.txt): two static weights.
-  # Red Hat Display Black (SIL OFL 1.1, fonts/RedHatDisplay-OFL.txt): a sans
-  # to morph into, unmodified.
+  # Red Hat Display Light and Black (SIL OFL 1.1, fonts/RedHatDisplay-OFL.txt):
+  # a sans to morph into, unmodified.
   fonts:
     - family: Fraunces
       fonts:
@@ -34,5 +34,7 @@ flutter:
           weight: 600
     - family: RedHatDisplay
       fonts:
+        - asset: fonts/RedHatDisplay-Light.otf
+          weight: 300
         - asset: fonts/RedHatDisplay-Black.otf
           weight: 900

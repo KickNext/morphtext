@@ -4,6 +4,7 @@
 #
 #   tool/record_demo.sh demo   # the README hero: doc/demo.webp and doc/demo.gif
 #   tool/record_demo.sh ldr    # the nod: doc/reels/ldr.webp and .gif
+#   tool/record_demo.sh vinyl  # MorphText in a Hero: doc/reels/vinyl.webp and .gif
 #
 # Both also get an H.264 MP4 in doc/reels/ for posting. None of doc/ ships
 # in the pub package (.pubignore).
@@ -14,7 +15,8 @@ reel="${1:-demo}"
 case "$reel" in
   demo) test=tool/record_demo_test.dart frames=doc/frames out=doc ;;
   ldr) test=tool/record_ldr_test.dart frames=build/ldr_frames out=doc/reels ;;
-  *) echo "usage: $0 [demo|ldr]" >&2; exit 64 ;;
+  vinyl) test=tool/record_vinyl_test.dart frames=build/vinyl_frames out=doc/reels ;;
+  *) echo "usage: $0 [demo|ldr|vinyl]" >&2; exit 64 ;;
 esac
 mkdir -p "$out" doc/reels
 

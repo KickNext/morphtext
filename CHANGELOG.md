@@ -1,3 +1,11 @@
+## Unreleased
+
+- A second example, Records (`example/lib/records.dart`): MorphText in a Hero
+  flight, a title morphing from the list's style to the page's as it flies.
+  The README's *In a Hero* covers the two things that make it look right: a
+  transparent `Material` around the shuttle, and a straight `RectTween` for
+  square artwork.
+
 ## 0.1.2
 
 - A word and an icon now morph as one shape, every letter from its place in

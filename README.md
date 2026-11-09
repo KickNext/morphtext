@@ -142,6 +142,36 @@ plain text. Pass `handoff` (as on `AnimatedMorphText`) to fade the text in over
 the end instead, when you play it along a curve rather than hand it to a
 `Text` at a precise frame.
 
+### In a Hero
+
+A `Hero`'s `flightShuttleBuilder` hands you the flight as an
+`Animation<double>`, which is what `progress` takes, so a title can change
+font, weight, size and spacing as it flies from a list to its page:
+
+```dart
+Hero(
+  tag: 'title-$id',
+  flightShuttleBuilder: (context, animation, direction, from, to) => Material(
+    type: MaterialType.transparency,
+    child: MorphText(title, from: listStyle, to: pageStyle, progress: animation),
+  ),
+  child: Text(title, style: onPage ? pageStyle : listStyle),
+)
+```
+
+- **`from` and `to` never swap.** The flight's animation is the page route's:
+  0 in the list and 1 on the page, pushing and popping alike.
+- **Wrap the shuttle in a transparent `Material`.** The flight happens in the
+  navigator's overlay, outside your `Scaffold`, so the plain text `MorphText`
+  draws at either end of the flight would otherwise get Flutter's yellow
+  "no Material" underline, as any `Text` in a shuttle does.
+- **Square artwork flying beside it:** give its `Hero` a straight
+  `createRectTween: (b, e) => RectTween(begin: b, end: e)`. Material's
+  default flight arcs the corners, which bends a square out of shape on the way.
+
+`example/lib/records.dart` is all of this in a small record library:
+`flutter run -t lib/records_main.dart` in `example/`.
+
 ## Icons
 
 Flutter draws an icon as one character of an icon font, so morphtext reads
@@ -254,7 +284,9 @@ type a word and switch its face, size, colour and motion (morphnext's springs
 or a curve, with the line of code each one is); press buttons whose labels
 flow into a tick, or into a cross when the upload fails; flip words into their icons and back; drive `MorphText`
 by hand or play it along a curve.
-`flutter run -d chrome` in `example/` runs it locally.
+`flutter run -d chrome` in `example/` runs it locally. `example/lib/records.dart`
+is a second example, MorphText in a Hero flight (see *In a Hero*):
+`flutter run -t lib/records_main.dart`.
 
 The hero above follows the shape of morphnext's own, so the two read as a
 pair. It is rendered frame by frame in a widget test
@@ -273,8 +305,16 @@ sign for change:
 
 ![LOVE, MORPH and ROBOT flowing into a heart, a delta and a robot, glitching through variants, and settling back on LOVE MORPH ROBOT](https://raw.githubusercontent.com/drei-gg/morphtext/main/doc/reels/ldr.webp)
 
-[ldr.mp4](https://github.com/drei-gg/morphtext/blob/main/doc/reels/ldr.mp4). Both
-are rendered frame by frame in widget tests: `tool/record_demo.sh demo|ldr`.
+[ldr.mp4](https://github.com/drei-gg/morphtext/blob/main/doc/reels/ldr.mp4).
+
+And the Records example on a phone: tap an album, and its sleeve and title fly
+to the album page as the title morphs from Red Hat Display Black into
+Fraunces SemiBold; the record slides out and spins; back flies it all home.
+Then again at a third of the speed:
+[vinyl.mp4](https://github.com/drei-gg/morphtext/blob/main/doc/reels/vinyl.mp4).
+
+All three are rendered frame by frame in widget tests:
+`tool/record_demo.sh demo|ldr|vinyl`.
 
 ## License and attribution
 
