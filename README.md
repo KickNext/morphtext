@@ -42,7 +42,7 @@ letter's outline gives the in-between shapes no font ever shipped.
 
 ```yaml
 dependencies:
-  morphtext: ^0.1.0
+  morphtext: ^0.2.0
 ```
 
 Requires Dart `>=3.9.0` and Flutter `>=3.32.0`.
@@ -204,6 +204,41 @@ code point computed at runtime.
 
 `AnimatedMorphText` and `MorphText` remain the shorthand for text only.
 
+## The system font (SF Pro on iOS)
+
+On iOS, the system font morphs too, with nothing bundled. Apple doesn't let
+an app ship SF Pro ([TN3214](https://developer.apple.com/documentation/technotes/tn3214-validating-the-fonts-you-ship-in-your-app)),
+so a style that names no family, or `CupertinoSystemText` or
+`CupertinoSystemDisplay`, isn't in `FontManifest.json`. morphtext reads the
+font iOS draws it with instead: CoreText hands over its tables at run time
+(`CTFontCopyTable`, through `dart:ffi`, public API only), and morphtext reads
+the outlines from those, once, in memory. Nothing is copied into the app or
+written to disk.
+
+```dart
+AnimatedMorphText(
+  'Night Drive',
+  style: hero
+      ? const TextStyle(
+          fontFamily: 'CupertinoSystemDisplay',
+          fontWeight: FontWeight.w800,
+          fontSize: 34,
+        )
+      : const TextStyle(fontWeight: FontWeight.w500, fontSize: 17),
+)
+```
+
+SF is one variable font, so each weight is read where Flutter draws it on
+the font's axes. Those places were measured on an iPhone (iOS 26, Flutter
+3.47) by fitting the outlines to what `Text` draws
+(`example/lib/system_font_main.dart` runs the check on a device): the
+default family and `CupertinoSystemText` take SF's named weights
+(`w100` is Ultralight, `w900` Black) in its Text design;
+`CupertinoSystemDisplay` takes the weight as given in its Display design.
+At 64 px the outlines cover the same pixels as `Text` to 95-98%. A family
+your app bundles always wins over the system font. Other platforms, macOS
+included, keep drawing the system font as plain text for now.
+
 ## Which letter becomes which
 
 Between two words, letters pair by a weighted edit distance: a letter kept as
@@ -240,11 +275,16 @@ and letter plans are shared by every `MorphText` on the bundle.
 
 ## Limitations
 
-- **The outlines must be readable from the bundled font file.** TrueType
-  (`glyf`) and CFF outlines in `.ttf`/`.otf`, declared in `pubspec.yaml`.
-  Fonts loaded at runtime (`FontLoader`, google_fonts downloads) or system
-  fonts aren't in `FontManifest.json`. Then `MorphText` draws plain text and
-  switches at the middle (a debug build says why, once).
+- **The outlines must be readable from the bundled font file**, or, on iOS,
+  be the system font. TrueType (`glyf`) and CFF outlines in `.ttf`/`.otf`,
+  declared in `pubspec.yaml`. Fonts loaded at runtime (`FontLoader`,
+  google_fonts downloads) and other platforms' system fonts aren't in
+  `FontManifest.json`. Then `MorphText` draws plain text and switches at the
+  middle (a debug build says why, once).
+- **The system font's weights were measured on iOS 26.** Older iOS versions
+  are untested, and a future iOS or Flutter that draws SF at other places on
+  its axes would make the end of a morph step a little as it hands back to
+  text. It reads the font once, about 25 ms, on the first morph.
 - **Plain-text ends.** Only progress strictly between 0 and 1 draws outlines. The
   outline is filled geometry, without hinting, so on small low-DPI text the
   first frame of a morph can look a hair softer than the text at rest.
@@ -260,8 +300,9 @@ and letter plans are shared by every `MorphText` on the bundle.
 - **Letters missing from the font** (fallback glyphs, emoji) are drawn as
   text at their moving position, the nearer end's letter, rather than
   morphed.
-- **Static faces morph; variable axes don't yet.** A single variable font is
-  read at its default instance (see *Ideas*).
+- **Variable fonts morph at the `wght` and `opsz` a style asks for** in
+  `fontVariations` (and the system font where Flutter draws it); other axes
+  stay at their defaults.
 - **A third target mid-flight** starts from whichever of the two ends the
   text is nearer, not from the in-between shape.
 - **Semantics.** The text is painted, not laid out as a `Text`, so it is
@@ -270,9 +311,7 @@ and letter plans are shared by every `MorphText` on the bundle.
 
 ## Ideas
 
-- Variable fonts: read each style's `wght` from `fontVariations` and morph
-  between two instances of one file (morphnext's reader already supports the
-  axes).
+- The system font on macOS, measured as on iOS.
 - Interrupting with a third target from the in-between shape, as
   `AnimatedMorphIcon` does.
 - Multi-line text.
@@ -287,6 +326,14 @@ by hand or play it along a curve.
 `flutter run -d chrome` in `example/` runs it locally. `example/lib/records.dart`
 is a second example, MorphText in a Hero flight (see *In a Hero*):
 `flutter run -t lib/records_main.dart`.
+
+Three more run on an iPhone, with SF Pro read from iOS:
+`lib/system_font_main.dart` morphs it (a track title into a hero,
+Ultralight into Black, Play into Pause) and checks its outlines against
+`Text` on the device; `lib/system_font_reel.dart` and
+`lib/system_font_flyer.dart` are the two reels below, each rendering itself
+frame by frame on the phone into the app's Documents
+(`lib/device_reel.dart`).
 
 The hero above follows the shape of morphnext's own, so the two read as a
 pair. It is rendered frame by frame in a widget test
@@ -315,6 +362,17 @@ Then again at a third of the speed:
 
 All three are rendered frame by frame in widget tests:
 `tool/record_demo.sh demo|ldr|vinyl`.
+
+Two more were rendered frame by frame on an iPhone 17 Pro, every letter SF
+Pro read from iOS and nothing bundled. An old sale flyer: rows of iPhone
+iPhone iPhone in a wave down the page through Pro Max, Retina, Camera and
+Face ID to SF Pro, Black and Ultralight swapping row by row, strips of icons
+and a starburst morphing with them:
+[sf-flyer.mp4](https://github.com/drei-gg/morphtext/blob/main/doc/reels/sf-flyer.mp4).
+And a music player: Regular to Ultralight to Black, a track title growing
+into its hero and back, Play into Pause, a heart filling in, and a tab bar
+whose icons become their words:
+[sf-player.mp4](https://github.com/drei-gg/morphtext/blob/main/doc/reels/sf-player.mp4).
 
 ## License and attribution
 

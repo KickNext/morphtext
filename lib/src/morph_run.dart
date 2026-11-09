@@ -122,12 +122,13 @@ class _MorphRunState extends State<MorphRun> {
       bundle,
       widget.text,
       widget.toText,
-      from.fontFamily,
-      from.fontWeight,
-      from.fontStyle,
-      to.fontFamily,
-      to.fontWeight,
-      to.fontStyle,
+      (
+        from.fontFamily,
+        from.fontWeight,
+        from.fontStyle,
+        from.fontVariations?.join(),
+      ),
+      (to.fontFamily, to.fontWeight, to.fontStyle, to.fontVariations?.join()),
       widget.converge,
     );
     if (key == _pairsKey) return;

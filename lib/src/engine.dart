@@ -20,9 +20,25 @@ import 'package:morphnext/src/geometry/shape.dart';
 /// A font file, parsed once (TrueType `glyf` or CFF outlines).
 final class GlyphFont {
   /// Parses [bytes] of an OpenType font file.
-  GlyphFont.parse(Uint8List bytes) : _font = OpenTypeFont.parse(bytes);
+  GlyphFont.parse(Uint8List bytes)
+    : this._(OpenTypeFont.parse(bytes), defaultFontVariationSelection);
+
+  GlyphFont._(this._font, this._variation);
 
   final OpenTypeFont _font;
+  final FontVariationSelection _variation;
+
+  /// The design axes of a variable font, by tag (`wght`, `opsz`, ...);
+  /// empty for a static one.
+  Set<String> get axes => _font.variationAxes.keys.toSet();
+
+  /// The same font at [weight] and [opticalSize] on its `wght` and `opsz`
+  /// axes, each clamped to the axis and ignored where the font has no such
+  /// axis. Null leaves an axis at its default. Shares the parsed file.
+  GlyphFont varied({double? weight, double? opticalSize}) => GlyphFont._(
+    _font,
+    (fill: null, weight: weight, grade: null, opticalSize: opticalSize),
+  );
 
   /// The outline of [codePoint], or null when the font lacks it or it has no
   /// contours (a space).
@@ -36,7 +52,7 @@ final class GlyphFont {
   /// shape ([GlyphShape.placed]), or null as for [shape].
   GlyphOutline? outline(int codePoint) {
     if (!_font.containsCodePoint(codePoint)) return null;
-    final outline = _font.glyphForCodePoint(codePoint);
+    final outline = _font.glyphForCodePoint(codePoint, _variation);
     final upm = outline.metrics.unitsPerEm.toDouble();
     final asc = outline.metrics.ascender.toDouble();
     if (upm <= 0 || outline.contours.isEmpty) return null;

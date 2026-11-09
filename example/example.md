@@ -10,7 +10,7 @@ face you morph between, as you would for `Text`:
 
 ```yaml
 dependencies:
-  morphtext: ^0.1.0
+  morphtext: ^0.2.0
 
 flutter:
   uses-material-design: true # for Icons
@@ -23,7 +23,9 @@ flutter:
           weight: 600
 ```
 
-A family that isn't bundled (a system font, or one downloaded at runtime)
+On iOS the system font needs nothing bundled: a style with no family, or
+`CupertinoSystemText` or `CupertinoSystemDisplay`, morphs SF Pro read from
+iOS. Any other family that isn't bundled (one downloaded at runtime, say)
 still draws, as plain text that switches at the middle; a debug build says
 why.
 

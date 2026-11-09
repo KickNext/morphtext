@@ -16,8 +16,24 @@ And a second app, **Records** (`lib/records.dart`): MorphText in a Hero. Tap an
 album and its title morphs from the list's style to the page's as it flies;
 the record slides out of its sleeve. `flutter run -t lib/records_main.dart`.
 
+And three for SF Pro on an iPhone, read from iOS with nothing bundled:
+
+- **`lib/system_font_main.dart`:** a track title growing into a hero,
+  Ultralight into Black, Play into Pause, and letters frozen mid-morph; on
+  launch it checks its outlines against what `Text` draws and logs each
+  match (`SFCHECK`).
+- **`lib/system_font_reel.dart`:** a music player reel, weights, a hero
+  title, and icons morphing into each other and into words.
+- **`lib/system_font_flyer.dart`:** an old sale flyer, iPhone iPhone iPhone
+  morphing in a wave to SF Pro.
+
+The two reels render themselves frame by frame on the phone, 1080x1920 at 60
+fps, into the app's Documents (`lib/device_reel.dart`); copy them off with
+`xcrun devicectl device copy from --domain-type appDataContainer`.
+
 ```bash
 flutter run -d chrome   # or any device
+flutter run -t lib/system_font_flyer.dart   # on an iPhone
 ```
 
 Fonts: Fraunces (SIL OFL 1.1, `fonts/Fraunces-OFL.txt`; static Light and
