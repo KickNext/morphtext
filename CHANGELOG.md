@@ -1,4 +1,20 @@
-## Unreleased
+## 0.2.0
+
+- The system font morphs on iOS, with nothing bundled. SF Pro can't ship in
+  an app (TN3214), so it was never in `FontManifest.json` and morphed as
+  plain text switching at the middle. A style that names no family, or
+  `CupertinoSystemText` or `CupertinoSystemDisplay`, now reads the font iOS
+  draws it with: CoreText's tables, through `dart:ffi` (public API), read
+  once in memory. Each weight is read where Flutter draws it on SF's axes,
+  measured on an iPhone (iOS 26) against `Text`: 95-98% of the same pixels
+  at 64 px. Other platforms are unchanged.
+- Variable fonts morph at the `wght` and `opsz` each style's
+  `fontVariations` asks for, instead of always at the font's default
+  instance.
+- Three examples for the system font, run on an iPhone:
+  `example/lib/system_font_main.dart` (morphs, and a check of the outlines
+  against `Text`), and two reels that render themselves frame by frame on
+  the phone, `system_font_reel.dart` and `system_font_flyer.dart`.
 
 - A second example, Records (`example/lib/records.dart`): MorphText in a Hero
   flight, a title morphing from the list's style to the page's as it flies.
